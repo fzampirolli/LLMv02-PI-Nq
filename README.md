@@ -1,10 +1,12 @@
 # Sistema de Correção Automática de Provas com IA — N Questões
 
-Correção assíncrona de submissões do Moodle VPL usando a API Groq (LLMs).  
-Para cada aluno, gera um `rubrica.txt` com a análise da IA por questão e compara com a nota atribuída pelo Moodle.
+Correção assíncrona de submissões do Moodle VPL usando a API Groq (LLMs).
+Para cada aluno, é gerado um arquivo `rubrica.txt` com a análise da IA por questão, além de uma comparação com a nota atribuída pelo Moodle.
 
-> ⚠️ **A nota final sempre é atribuída pelo professor com avaliação manual.**  
-> A correção da IA é apenas um apoio ao processo de aprendizagem e pode conter imprecisões.
+As provas são criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.ufabc.edu.br)), com questões **paramétricas** e sorteadas para os alunos. As soluções devem ser submetidas em uma atividade VPL, contendo vários arquivos com nomes específicos: `Q1.*`, `Q2.*`, etc., onde `*` representa a **extensão da linguagem escolhida pelo aluno**.
+
+> ⚠️ **A nota final é sempre atribuída pelo professor por meio de avaliação manual.**
+> A correção da IA serve apenas como apoio ao processo de aprendizagem e pode conter imprecisões.
 
 ---
 
