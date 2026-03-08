@@ -218,6 +218,18 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         logger.warning("  ⚠ Sem submissão — pulando")
         return {"student": name, "status": "skipped", "reason": "sem submissão"}
 
+    # === NOVA LÓGICA: Se existir, lê e retorna para o consolidado ===
+    rpath = subdir / rubric_fname
+    if rpath.exists():
+        logger.info(f"  ⏭ Rubrica já existe — lendo arquivo local")
+        try:
+            conteudo_existente = rpath.read_text(encoding='utf-8')
+            return {"student": name, "status": "ok", "content": conteudo_existente, "from_cache": True}
+        except Exception as e:
+            logger.error(f"  ❌ Erro ao ler rubrica existente: {e}")
+            return {"student": name, "status": "failed", "reason": "erro leitura local"}
+    # ===============================================================
+
     moodle_exec = find_moodle_exec(sd, subdir)
     code_files  = {q: find_code_file(subdir, q, exts) for q in q_weights}
 
@@ -237,7 +249,7 @@ async def process_student(sd, llm, q_weights, universal_prompt,
                   + f"\n\nPeso máximo desta questão: {w} pontos.\n"
                   + f"Use o formato: Nota: X + Y + Z = TOTAL/{w}\n")
         ext = cf.suffix.lstrip('.')
-        sep = "//" if ext in ('java','c','cpp','js','ts') else "#"
+        sep = "//" if ext in ('py','java','c','cpp','js','r') else "#"
         code_content = f"{sep} ===== Q{q} — {cf.name} =====\n{code_text}"
         async with sem:
             resp = await llm.call_grader(system_prompt=prompt, code_content=code_content)
