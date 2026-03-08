@@ -1,0 +1,431 @@
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ALUNO   : Francisco Zampirolli - fzampirolli                               │
+│ DATA    : 2026-03-08 09:40:54                                              │
+│ QUESTÕES: 2  Q1=50pts  Q2=50pts                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ CORREÇÃO MOODLE (VPL)                                                      │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Nota : 0%  →  0.00 / 100 pts                                              │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Q1  (peso: 50 pts)  —  Tipo detectado: B                                   │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Arquivo: Q1.py                                                             │
+├────────────────────────────────────────────────────────────────────────────┤
+  a = int(input())
+  b = int(input())
+  produto = 0
+  for i in range (a, b):
+      if i // 2 == 0:
+          produto += i ** 2
+  print(produto)
+├────────────────────────────────────────────────────────────────────────────┤
+│ AVALIAÇÃO DA IA — Q1 (TIPO B)                                              │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Tipo identificado: B                                                      │
+│  Agora, vamos avaliar o código utilizando a rubrica do tipo B — Acumulação │
+│  com laço.                                                                 │
+│  Critério 1 — Leitura e tipagem (5 pts):                                   │
+│  - O código lê dois valores com input() e converte para int, então está    │
+│  correto. (5/5)                                                            │
+│  Critério 2 — Laço com filtro e acumulador (35 pts):                       │
+│    a) Iteração correta (7 pts):                                            │
+│       - O código usa for sobre o intervalo, mas exclui o último valor (b)  │
+│       porque usa range(a, b) em vez de range(a, b+1). (0/7)                │
+│    b) Filtro correto (10 pts):                                             │
+│       - O código testa com i // 2 == 0, que é lógica de paridade errada.   │
+│       Deveria ser i % 2 == 0 para números pares. (0/10)                    │
+│    c) Operação correta (10 pts):                                           │
+│       - O código calcula i ** 2 e aplica +=, então está correto. (10/10)   │
+│    d) Inicialização do acumulador (8 pts):                                 │
+│       - O código inicializa produto com 0, que está correto para soma, mas │
+│       este é um produtório. Deveria ser inicializado com 1, mas como está  │
+│       fazendo uma soma, não interfere no resultado. (8/8)                  │
+│  Critério 3 — Saída (10 pts):                                              │
+│    - O código imprime o resultado, mas não tem o formato especificado na   │
+│    questão, que não foi fornecida. Considerando o contexto do código, a    │
+│    saída parece ser coerente com o que se espera de um produtório ou       │
+│    somatório. (10/10)                                                      │
+│  Erros comuns:                                                             │
+│  - range(a, b) em vez de range(a, b+1) → exclui o último valor.            │
+│  - i // 2 == 0 em vez de i % 2 == 0 → lógica de paridade errada.           │
+│  - O código parece ter sido projetado para somar os quadrados dos números  │
+│  pares no intervalo [a, b), mas o nome da variável é "produto" e a         │
+│  operação é de soma, o que pode ser confuso.                               │
+│  Nota: 5 + 18 + 10 = 33/50                                                 │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Nota IA : 33 / 50 pts                                                     │
+│  Modelo  : llama-3.3-70b-versatile                                         │
+│  Tempo   : 2.1s                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Q2  (peso: 50 pts)  —  Tipo detectado: A                                   │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Arquivo: Q2.py                                                             │
+├────────────────────────────────────────────────────────────────────────────┤
+  prot = int(input())
+  carbo = int(input())
+  gord = int(input())
+  metap = None
+  metac = None
+  metag = None
+  refeicao = None
+  if prot < 44:
+      metap = 1
+  elif prot >= 44 and prot <= 65:
+      metap = 2
+  else:
+      metap = 3
+  
+  if carbo < 104:
+      metac = 1
+  elif carbo >= 104 and carbo <= 199:
+      metac = 2
+  else:
+      metac = 3
+  
+  if gord < 22:
+      metag = 1
+  elif gord >= 22 and gord <= 62:
+      metag = 2
+  else:
+      metag = 3
+  
+  if (metap, metac, metag) == 1 or (metap, metac, metag) == 2 or (metap, metac, metag) == 3:
+      refeicao = "Equilibrada"
+  else:
+      refeicao = "Desequilibrada"
+  
+  if metap == 1:
+      metap = "Abaixo da meta"
+  elif metap == 2:
+      metap = "Adequado"
+  else:
+      metap = "Acima da meta"
+  
+  if metac == 1:
+      metac = "Abaixo da meta"
+  elif metac == 2:
+      metac = "Adequado"
+  else:
+      metac = "Acima da meta"
+  
+  if metag == 1:
+      metag = "Abaixo da meta"
+  elif metag == 2:
+      metag = "Adequado"
+  else:
+      metag = "Acima da meta"
+  
+  print("Proteina (%0.fg) :" % prot, metap)
+  print("Carboidrato (%0.fg) :" % carbo, metac)
+  print("Gordura (%0.fg) :" % gord, metag)
+  print("Avaliacao:", refeicao)
+├────────────────────────────────────────────────────────────────────────────┤
+│ AVALIAÇÃO DA IA — Q2 (TIPO A)                                              │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Tipo identificado: A                                                      │
+│  Agora, vamos analisar o código segundo a rubrica do tipo A —              │
+│  Classificação com if/elif/else.                                           │
+│  Critério 1 — Leitura e tipagem (5 pts)                                    │
+│  O código lê os valores com input() e converte para int, que é o tipo      │
+│  correto para os dados de entrada. Portanto, o aluno atendeu a este        │
+│  critério. Nota: 5/5                                                       │
+│  Critério 2 — Estrutura condicional if/elif/else (30 pts)                  │
+│  Para cada variável (proteína, carboidrato, gordura):                      │
+│  - Usa if/elif/else corretamente.                                          │
+│  - Compara com os limites corretos (< e <=/>= ou equivalente).             │
+│  - Não há sobreposição nem lacuna entre as faixas.                         │
+│  - Produz o texto de saída correto para cada categoria.                    │
+│  No entanto, o código apresenta um problema na comparação para determinar  │
+│  se a refeição é "Equilibrada" ou "Desequilibrada". A condição (metap,     │
+│  metac, metag) == 1 or (metap, metac, metag) == 2 or (metap, metac, metag) │
+│  == 3 não funcionará como esperado, pois está comparando uma tupla com um  │
+│  número, o que sempre resultará em False. Além disso, a lógica para        │
+│  determinar se a refeição é equilibrada ou não está errada, pois a         │
+│  refeição é considerada equilibrada apenas se todos os nutrientes          │
+│  estiverem dentro da meta (ou seja, metap == 2 and metac == 2 and metag == │
+│  2).                                                                       │
+│  Considerando as condições corretas para cada nutriente e a lógica de      │
+│  classificação final, o aluno perdeu pontos devido à comparação errada     │
+│  para a classificação final. Nota: 20/30                                   │
+│  Critério 3 — Classificação final e saída (15 pts)                         │
+│  - O código não determina corretamente "Equilibrada" / "Desequilibrada",   │
+│  pois a lógica de classificação está errada.                               │
+│  - Imprime cada nutriente no formato correto.                              │
+│  - Imprime a avaliação final, mas com base em uma lógica de classificação  │
+│  errada.                                                                   │
+│  Devido ao erro na lógica de classificação final, o aluno perdeu pontos.   │
+│  Nota: 10/15                                                               │
+│  Erros comuns TIPO A — O código apresenta um erro comum na comparação para │
+│  a classificação final, onde a tupla é comparada com um número, o que      │
+│  sempre resulta em False. Além disso, a lógica para determinar a           │
+│  classificação final está errada.                                          │
+│  Nota: 5 + 20 + 10 = 35/50                                                 │
+├────────────────────────────────────────────────────────────────────────────┤
+│  Nota IA : 35 / 50 pts                                                     │
+│  Modelo  : llama-3.3-70b-versatile                                         │
+│  Tempo   : 2.4s                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│   RESUMO — MOODLE  x  IA                                                   │
+├────────────────────────────────────────────────────────────────────────────┤
+│   Peso total : 100 pts                                                     │
+│  ────────────────────────────────────────────────────────────────────────  │
+│   Q1 (IA, TIPO B) : 33 / 50 pts                                            │
+│   Q2 (IA, TIPO A) : 35 / 50 pts                                            │
+│  ────────────────────────────────────────────────────────────────────────  │
+│   Moodle : 0%  →  0.00 / 100 pts                                           │
+│   IA     : 68 / 100 pts                                                    │
+│  ────────────────────────────────────────────────────────────────────────  │
+│   Diferença (IA - Moodle): +68.00 pts                                      │
+└────────────────────────────────────────────────────────────────────────────┘
+
+──────────────────────────────────────────────────────────────────────────────
+ LOG BRUTO — CORREÇÃO DO MOODLE
+──────────────────────────────────────────────────────────────────────────────
+<|--
+
+--|>
+
+
+<|--
+-Question 1:
+
+Avaliação: 0.000/1 (0.00%)
+
+>Arquivo: Q1
+>Escolhido: Q1.py
+>Habilidades: 
+
+Avaliação: 0.00%
+--|>
+
+Testing 1/10 : test_1
+Testing 2/10 : test_2
+Testing 3/10 : test_3
+Testing 4/10 : test_4
+Testing 5/10 : test_5
+Testing 6/10 : test_6
+Testing 7/10 : test_7
+Testing 8/10 : test_8
+Testing 9/10 : test_9
+Testing 10/10 : test_10
+
+<|--
+-Failed tests
+Test 1: test_1
+Test 2: test_2
+Test 3: test_3
+Test 4: test_4
+Test 5: test_5
+Test 6: test_6
+Test 7: test_7
+Test 8: test_8
+Test 9: test_9
+Test 10: test_10
+--|>
+
+<|--
+-Test 1: test_1 (-10.000)
+Incorrect program output
+ --- Input ---
+>1
+>8
+>
+
+ --- Program output ---
+>1
+
+ --- Expected output (numbers)---
+>147456
+
+-Test 2: test_2 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 3: test_3 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 4: test_4 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+-Test 5: test_5 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 6: test_6 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 7: test_7 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 8: test_8 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 9: test_9 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+-Test 10: test_10 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+--|>
+
+<|--
+-Summary of tests
+>+------------------------------+
+>| 10 tests run/ 0 tests passed |
+>+------------------------------+
+
+--|>
+
+PartialGrade :=>> 0
+
+
+<|--
+-Question 2:
+
+Avaliação: 1.000/1 (100.00%)
+
+>Arquivo: Q2
+>Escolhido: Q2.py
+>Habilidades: 
+
+Avaliação: 100.00%
+--|>
+
+Testing 1/10 : test_1
+Testing 2/10 : test_2
+Testing 3/10 : test_3
+Testing 4/10 : test_4
+Testing 5/10 : test_5
+Testing 6/10 : test_6
+Testing 7/10 : test_7
+Testing 8/10 : test_8
+Testing 9/10 : test_9
+Testing 10/10 : test_10
+
+<|--
+-Summary of tests
+>+------------------------------+
+>| 10 tests run/10 tests passed |
+>+------------------------------+
+
+--|>
+
+PartialGrade :=>>100
+
+
+<|--
+-Nota: 50.00
+--|>
+Grade :=>> 50.000
+<|--
+
+-🚀 Feedback automático gerado por IA ⚠️ Revise com cuidado, pode conter erros!
+
+✨ Vocé está quase lá!
+
+🧭 Confira as dicas a seguir para ajustar seu(s) código(s):
+
+--|>
+──────────────────────────────────────────────────────────────────────────────
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ALUNO: Francisco Zampirolli - fzampirolli                                  │
+└────────────────────────────────────────────────────────────────────────────┘
+════════════════════════════════════════════════════════════
+

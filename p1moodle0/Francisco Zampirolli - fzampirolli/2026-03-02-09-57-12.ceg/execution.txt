@@ -1,0 +1,233 @@
+<|--
+
+--|>
+
+
+<|--
+-Question 1:
+
+Avaliação: 0.000/1 (0.00%)
+
+>Arquivo: Q1
+>Escolhido: Q1.py
+>Habilidades: 
+
+Avaliação: 0.00%
+--|>
+
+Testing 1/10 : test_1
+Testing 2/10 : test_2
+Testing 3/10 : test_3
+Testing 4/10 : test_4
+Testing 5/10 : test_5
+Testing 6/10 : test_6
+Testing 7/10 : test_7
+Testing 8/10 : test_8
+Testing 9/10 : test_9
+Testing 10/10 : test_10
+
+<|--
+-Failed tests
+Test 1: test_1
+Test 2: test_2
+Test 3: test_3
+Test 4: test_4
+Test 5: test_5
+Test 6: test_6
+Test 7: test_7
+Test 8: test_8
+Test 9: test_9
+Test 10: test_10
+--|>
+
+<|--
+-Test 1: test_1 (-10.000)
+Incorrect program output
+ --- Input ---
+>1
+>8
+>
+
+ --- Program output ---
+>1
+
+ --- Expected output (numbers)---
+>147456
+
+-Test 2: test_2 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 3: test_3 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 4: test_4 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+-Test 5: test_5 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 6: test_6 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 7: test_7 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 8: test_8 (-10.000)
+Incorrect program output
+ --- Input ---
+>3
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>576
+
+-Test 9: test_9 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>7
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+-Test 10: test_10 (-10.000)
+Incorrect program output
+ --- Input ---
+>2
+>6
+>
+
+ --- Program output ---
+>0
+
+ --- Expected output (numbers)---
+>2304
+
+--|>
+
+<|--
+-Summary of tests
+>+------------------------------+
+>| 10 tests run/ 0 tests passed |
+>+------------------------------+
+
+--|>
+
+PartialGrade :=>> 0
+
+
+<|--
+-Question 2:
+
+Avaliação: 1.000/1 (100.00%)
+
+>Arquivo: Q2
+>Escolhido: Q2.py
+>Habilidades: 
+
+Avaliação: 100.00%
+--|>
+
+Testing 1/10 : test_1
+Testing 2/10 : test_2
+Testing 3/10 : test_3
+Testing 4/10 : test_4
+Testing 5/10 : test_5
+Testing 6/10 : test_6
+Testing 7/10 : test_7
+Testing 8/10 : test_8
+Testing 9/10 : test_9
+Testing 10/10 : test_10
+
+<|--
+-Summary of tests
+>+------------------------------+
+>| 10 tests run/10 tests passed |
+>+------------------------------+
+
+--|>
+
+PartialGrade :=>>100
+
+
+<|--
+-Nota: 50.00
+--|>
+Grade :=>> 50.000
+<|--
+
+-🚀 Feedback automático gerado por IA ⚠️ Revise com cuidado, pode conter erros!
+
+✨ Vocé está quase lá!
+
+🧭 Confira as dicas a seguir para ajustar seu(s) código(s):
+
+--|>

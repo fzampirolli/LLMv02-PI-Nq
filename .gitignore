@@ -1,0 +1,27 @@
+# === Segredos e Ambiente (NUNCA versionar) ===
+config.yaml
+UAB.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.vscode/
+log_envios.csv
+
+# === Pastas de Dados e Arquivos de Texto ===
+p1moodle/
+logs/
+# Bloqueia os arquivos de texto ALL, exceto se for da p1moodle0
+p1moodle*_ALL.txt
+!p1moodle0_ALL.txt
+!p1moodle0_ALL.csv
+
+# === Configuração da p1moodle0 ===
+# Ignora o conteúdo da pasta, mas permite que o Git "caminhe" nela
+p1moodle0/**/*
+!p1moodle0/**/
+!p1moodle0/**/execution.txt
+!p1moodle0/**/Teste.py
+!p1moodle0/**/rubrica.txt

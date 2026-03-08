@@ -1,0 +1,47 @@
+# =============================================================================
+# config.yaml.example — Template de Configuração
+# =============================================================================
+# INSTRUÇÕES:
+#   cp config.yaml.example config.yaml
+#   Edite config.yaml com suas credenciais reais.
+#   NUNCA versione o config.yaml (adicione ao .gitignore).
+# =============================================================================
+
+# --- Configuração de E-mail (SMTP) ---
+email:
+  smtp_server: smtp.ufabc.edu.br
+  smtp_port: 587
+  from_address: seu_email@ufabc.edu.br
+  password: "sua_senha_aqui"
+  use_tls: true
+
+# --- Configuração da API de IA (Groq) ---
+# Obtenha sua chave em: https://console.groq.com/keys
+groq:
+  api_url: "https://api.groq.com/openai/v1/chat/completions"
+  api_key: "gsk_..."
+  temperature: 0.7
+  max_response_chars: 8192
+  min_response_chars: 5
+  models:
+    - "llama-3.3-70b-versatile"
+    - "openai/gpt-oss-120b"
+    - "llama-3.1-8b-instant"
+    - "openai/gpt-oss-20b"
+    # - "whisper-large-v3"
+    # - "whisper-large-v3-turbo"
+
+# --- Configuração do Processamento de Provas ---
+grading:
+  use_llm: true
+  min_code_lines: 4
+  weights:
+    q1: 100          # pontuação máxima da questão
+    q2: 0
+  mode: "1q"
+  prompt_file: "prompt1q.txt"
+  
+# --- Configuração de Pastas ---
+paths:
+  student_base_dir: "Simulado0"
+  output_rubric_filename: "rubrica.txt"
