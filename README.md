@@ -138,6 +138,29 @@ paths:
 
 ---
 
+### Usar Gmail como remetente (opcional)
+
+Para enviar pelo Gmail, gere uma **Senha de App** (sua senha normal não funciona):
+
+1. Acesse **https://myaccount.google.com/apppasswords** (requer login)
+2. Em "Nome do app", coloque qualquer nome, ex: `MCTest`
+3. Clique em **Criar** → será gerada uma senha de 16 caracteres
+4. Copie e cole no `config.yaml`:
+
+```yaml
+email:
+  smtp_server: smtp.gmail.com
+  smtp_port: 587
+  from_address: seu_email@gmail.com
+  password: "abcdefghijklmnop"   # 16 caracteres gerados pelo Google
+  use_tls: true
+```
+
+> ℹ️ Se a opção "Senhas de app" não aparecer, ative primeiro a **verificação em duas etapas** em https://myaccount.google.com/security
+
+
+---
+
 ## 4. O prompt.txt — Prompt Universal
 
 ### Por que um prompt universal?

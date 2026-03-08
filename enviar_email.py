@@ -76,12 +76,12 @@ def buscar_rubrica_txt(pasta_base):
                             'login': login,
                             'nome_pasta': item,
                             'arquivo_rubrica': arquivos[0],
-                            'email': f"{login}@ufabc.edu.br"
-                            #'email': f"{login}@aluno.ufabc.edu.br"
+                            'email': f"{login}@aluno.ufabc.edu.br"
                         })
     except Exception as e:
         print(f"Erro na busca: {e}")
     return rubricas_encontradas
+
 
 def ler_nota_rubrica(arquivo_rubrica):
     try:
@@ -135,7 +135,7 @@ def main():
 
                 # DESTINATÁRIO (ajuste aqui para produção ou teste)
                 email_to = f"{login}@aluno.ufabc.edu.br" 
-                email_to = "fzampirolli@gmail.com" # TESTE
+                #email_to = "fzampirolli@gmail.com" # TESTE
 
                 # Envio e Log
                 sucesso, erro = envia_email(server, email_cfg['from_address'], email_to, [], assunto, texto_email, [dados['arquivo_rubrica']])
