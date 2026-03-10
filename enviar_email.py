@@ -156,5 +156,3 @@ if __name__ == "__main__":
         with open("log_envios.csv", "w", encoding="utf-8") as f:
             f.write("Data;Login;Status;Detalhes\n")
     main()
-    
-    
