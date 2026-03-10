@@ -10,6 +10,8 @@ import re
 import yaml
 from datetime import datetime
 
+
+
 def carregar_configuracao(caminho_config='config.yaml'):
     try:
         with open(caminho_config, 'r', encoding='utf-8') as f:
