@@ -121,7 +121,15 @@ def main():
 
     try:
         with smtplib.SMTP(email_cfg['smtp_server'], email_cfg['smtp_port'], timeout=30) as server:
+<<<<<<< HEAD
             #server.set_debuglevel(1)  # Adicione esta linha aqui
+=======
+<<<<<<< HEAD
+            server.set_debuglevel(1)  # Adicione esta linha aqui
+=======
+            #server.set_debuglevel(1)  # Adicione esta linha aqui
+>>>>>>> v0
+>>>>>>> ok
             server.ehlo()
             server.starttls(context=context)
             server.login(email_cfg['from_address'], email_cfg['password'])
@@ -155,3 +163,40 @@ if __name__ == "__main__":
         with open("log_envios.csv", "w", encoding="utf-8") as f:
             f.write("Data;Login;Status;Detalhes\n")
     main()
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+
+"""
+
+nslookup ufabc.edu.br
+
+Server:         127.0.0.53
+Address:        127.0.0.53#53
+
+Non-authoritative answer:
+Name:   ufabc.edu.br
+Address: 177.104.50.120
+Name:   ufabc.edu.br
+Address: 2801:a4:fabc:1034::120
+
+nslookup aluno.ufabc.edu.br
+
+Server:         127.0.0.53
+Address:        127.0.0.53#53
+
+Non-authoritative answer:
+Name:   aluno.ufabc.edu.br
+Address: 177.104.50.56
+
+
+nslookup aluno.ufabc.edu.br (Verifique se bate com o 177.104.50.56).
+
+nc -zv smtp.ufabc.edu.br 587 (Isso testa se a porta do servidor está aberta através da VPN).
+
+route get 177.104.50.56 (Isso dirá se o Mac está enviando o tráfego pela sua internet de casa ou por "dentro" do túnel da VPN).
+
+"""
+=======
+>>>>>>> v0
+>>>>>>> ok
