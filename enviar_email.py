@@ -10,6 +10,8 @@ import re
 import yaml
 from datetime import datetime
 
+
+
 def carregar_configuracao(caminho_config='config.yaml'):
     try:
         with open(caminho_config, 'r', encoding='utf-8') as f:
@@ -121,7 +123,10 @@ def main():
 
     try:
         with smtplib.SMTP(email_cfg['smtp_server'], email_cfg['smtp_port'], timeout=30) as server:
+<<<<<<< HEAD
             server.set_debuglevel(1)  # Adicione esta linha aqui
+=======
+>>>>>>> 40380b5938bc19f9e66fec577500d252096a11f9
             server.ehlo()
             server.starttls(context=context)
             server.login(email_cfg['from_address'], email_cfg['password'])
@@ -155,6 +160,7 @@ if __name__ == "__main__":
         with open("log_envios.csv", "w", encoding="utf-8") as f:
             f.write("Data;Login;Status;Detalhes\n")
     main()
+<<<<<<< HEAD
 
 """
 
@@ -186,3 +192,5 @@ nc -zv smtp.ufabc.edu.br 587 (Isso testa se a porta do servidor está aberta atr
 route get 177.104.50.56 (Isso dirá se o Mac está enviando o tráfego pela sua internet de casa ou por "dentro" do túnel da VPN).
 
 """
+=======
+>>>>>>> 40380b5938bc19f9e66fec577500d252096a11f9
