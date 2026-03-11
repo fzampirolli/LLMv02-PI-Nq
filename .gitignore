@@ -9,6 +9,7 @@ __pycache__/
 .DS_Store
 .vscode/
 log_envios.csv
+*.zip
 
 # === Pastas de Dados e Arquivos de Texto ===
 p1moodle/
