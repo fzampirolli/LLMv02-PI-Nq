@@ -22,7 +22,9 @@ templates:
 
     A sua nota da prova já está disponível no Moodle.
 
-    Em anexo, envio também as competências avaliadas e uma correção detalhada gerada automaticamente por Inteligência Artificial.
+    Abaixo, envio também as competências avaliadas e uma correção detalhada gerada automaticamente por Inteligência Artificial (IA).
+    
+    No anexo "rubrica.txt" tem o retorna da IA (que deve baixar e ver com um bloco de notas).
 
     Ressalto que essa correção gerada por IA PODE conter imprecisões ou erros, mas pode ser útil como apoio ao seu processo de aprendizagem na disciplina.
 
@@ -42,7 +44,7 @@ templates:
         "openai/gpt-oss-20b"
     )
 
-    O processo é repetido até que seja obtida uma resposta com conteúdo.  
+    O processo é repetido até que seja obtida uma resposta com nota válida (entre 0 e 50).
     Alguns desses modelos apresentam respostas melhores, mas, devido à limitação de 30 requisições por minuto na versão gratuita do Groq (https://console.groq.com/settings/limits), foi necessário realizar um sorteio aleatório entre eles.
 
     """
