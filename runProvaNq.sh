@@ -145,8 +145,9 @@ if [ $EXIT_CODE -eq 0 ]; then
 
     echo ""
     echo -e "${BOLD}[5/5] Próximos passos${RESET}"
-    echo -e "  cat ${STUDENT_DIR}_ALL.txt | less   # ver todos os resultados"
-    echo -e "  python3 enviar_email.py             # enviar feedbacks (opcional)"
+    echo -e "  cat ${STUDENT_DIR}_ALL.txt | less                      # ver todos os resultados"
+    echo -e "  python3 gerar_relatorio.py ${STUDENT_DIR}_ALL.txt      # gerar relatório CSV"
+    echo -e "  python3 enviar_email.py                           # enviar feedbacks (opcional)"
 else
     echo -e "${RED}[4/5] ❌ Execução encerrada com erro (código $EXIT_CODE).${RESET}"
     exit $EXIT_CODE
