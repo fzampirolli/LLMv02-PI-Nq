@@ -22,7 +22,7 @@ As provas são criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.u
 ├── config.yaml.example     ← template de configuração
 ├── prompt.txt              ← prompt universal: a LLM identifica o tipo e avalia
 ├── gerar_relatorio.py      ← gera CSV a partir do relatório consolidade TXT
-└── p1moodle1/              ← pasta com submissões dos alunos (gerada pelo Moodle)
+└── p1moodle0/              ← pasta com submissões dos alunos (gerada pelo Moodle)
     ├── Nome Aluno - login/
     │   ├── 2026-03-04-10-14-39/       ← última submissão (pasta timestamp)
     │   │   ├── Q1.py                  ← código questão 1
@@ -112,7 +112,16 @@ Copy-Item config.yaml.example config.yaml
 ```yaml
 # Chave da API Groq (obrigatório)
 groq:
+  api_url: "https://api.groq.com/openai/v1/chat/completions"
   api_key: "gsk_..."          # cole sua chave aqui
+  temperature: 0.7
+  max_response_chars: 100000
+  min_response_chars: 5
+  models:
+    - "llama-3.3-70b-versatile"
+    - "openai/gpt-oss-120b"
+    - "llama-3.1-8b-instant"
+    - "openai/gpt-oss-20b"
 
 # Credenciais de e-mail SMTP (só necessário para enviar feedbacks)
 email:
@@ -121,16 +130,100 @@ email:
   from_address: seu_email@ufabc.edu.br
   password: "sua_senha"
 
-# Configuração da prova
-grading:
-  prompt_file: "prompt.txt"   # prompt universal — veja seção abaixo
-  weights:
-    q1: 50                    # pontuação máxima de cada questão
-    q2: 50
+templates:
+  assunto: "Rubricas e Correções geradas por LLM - Prova1 - {login}@aluno.ufabc.edu.br"
+  corpo: |
+    Prezado(a) {nome_pasta},
 
-# Pasta com as submissões dos alunos
+    A sua nota da prova já está disponível no Moodle.
+
+    Em anexo, envio também as competências avaliadas e uma correção detalhada gerada automaticamente por Inteligência Artificial.
+
+    Ressalto que essa correção gerada por IA PODE conter imprecisões ou erros, mas pode ser útil como apoio ao seu processo de aprendizagem na disciplina.
+
+    Uma sugestão é submeter os seus códigos contidos neste arquivo, juntamente com as RUBRICAS abaixo, a outros modelos de LLM para comparação. Isso pode ajudar a identificar possíveis erros, além de oferecer diferentes perspectivas sobre o código e sobre os critérios de avaliação.
+
+    Caso tenha dúvidas sobre a correção apresentada no Moodle, estou à disposição para esclarecimentos.
+
+    Atenciosamente,  
+    Prof. Francisco Zampirolli  
+
+    PS.: Explicando o processo: a última versão salva no Moodle foi anexada ao *prompt* e enviadas para um dos LLMs escolhidos aleatoriamente entre os modelos abaixo:
+
+    modelos = (
+        "llama-3.3-70b-versatile"
+        "openai/gpt-oss-120b"
+        "llama-3.1-8b-instant"
+        "openai/gpt-oss-20b"
+    )
+
+    O processo é repetido até que seja obtida uma resposta com conteúdo.  
+    Alguns desses modelos apresentam respostas melhores, mas, devido à limitação de 30 requisições por minuto na versão gratuita do Groq (https://console.groq.com/settings/limits), foi necessário realizar um sorteio aleatório entre eles.
+
+    """
+    RUBRICA de Correção Automática - TIPO A
+    Desenvolveu corretamente **condicionais**:
+
+    1) Entrada de dados: X (max: 5) 
+      Leitura correta dos valores de entrada com input() e
+      conversão adequada para inteiro ou float.
+
+    2) Lógica das Condicionais: Y (max: 30) 
+      Implementação correta das faixas de cada nutriente, sem sobreposições. 
+      Lógica para a Avaliação Final: uso de if/else para definir "Equilibrada" ou "Desequilibrada".
+
+    3) Saída: Z (max: 15) 
+      Exibição do status individual de cada nutriente seguindo o modelo. 
+      Exibição da linha final "Avaliacao".
+
+    Nota: X + Y + Z  (max: 50)
+    """
+
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    """
+    RUBRICA de Correção Automática - TIPO B
+    Desenvolveu corretamente **laços** de repetição:
+
+    1) Entrada e Organização: X (max: 5) 
+      Leitura e conversão dos dois números inteiros a e b.
+
+    2) Estrutura de Repetição: Y (max: 35) 
+      Inicialização correta da variável acumuladora (soma = 0 ou produto = 1). 
+      Implementação correta do laço e dos filtros (paridade ou potência). 
+      Inclusividade: garantir que o limite b seja incluído (ex.: range(a, b + 1)).
+
+    3) Saída: Z (max: 10) 
+      Impressão do valor final da acumulação, sem caracteres extras.
+
+    Nota: X + Y + Z  (max: 50)
+    """
+
+# --- Configuração do Processamento de Provas ---
+grading:
+  # ── Prompt universal ────────────────────────────────────────────────────
+  # A LLM lê o código do aluno, identifica o tipo da questão sozinha
+  # e aplica a rubrica correspondente — tudo em uma única chamada.
+  #
+  # Para adicionar novos tipos (vetor, matriz, recursão...):
+  # basta acrescentar a rubrica do novo tipo dentro do prompt.txt.
+  prompt_file: "prompt.txt"
+
+  weights:
+    q1: 50
+    q2: 50
+  use_llm: true                  # true = ativa análise da IA; false = apenas notas do Moodle
+  min_code_lines: 4              # mínimo de linhas para enviar à IA
+  supported_extensions:          # ordem de prioridade
+    - py
+    - java
+    - c     
+    - cpp    
+
+# --- Configuração de Pastas ---
 paths:
-  student_base_dir: "p1moodle1"
+  student_base_dir: "p1moodle0"   # pasta raiz com as submissões
+  output_rubric_filename: "rubrica.txt"
 ```
 
 > ⚠️ **Nunca versione o `config.yaml`** — ele contém sua API key e senha de e-mail.  
