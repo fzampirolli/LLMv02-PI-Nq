@@ -88,16 +88,44 @@ def extrair_nota_texto(texto: str, q_weight: int) -> str:
 # Extração de nota (Moodle)
 # =============================================================================
 
-def extrair_nota_moodle(p: Optional[Path]) -> str:
-    if not p or not p.exists(): return "N/A"
+def extrair_nota_moodle(p: Optional[Path], grade_file: Optional[Path] = None) -> str:
+    # Prioridade 1: grade.txt — contém apenas a nota final (ex: "79.16500")
+    if grade_file and grade_file.exists():
+        try:
+            t = grade_file.read_text(errors='replace').strip()
+            v = float(t.replace(',', '.'))
+            if 0 <= v <= 100:
+                return f"{v:.3f}"
+        except Exception:
+            pass
+    # Prioridade 2: execution.txt — busca "Grade :=>> XX.XX" (nota final, não parcial)
+    if not p or not p.exists(): return "0.00"
     try:
         t = p.read_text(errors='replace')
-        m = re.search(r'Grade\s*:=+>>\s*([0-9]+(?:[.,][0-9]+)?)', t)
+        m = re.search(r'^Grade\s*:=+>>\s*([0-9]+(?:[.,][0-9]+)?)', t, re.MULTILINE)
         if m: return m.group(1).replace(',', '.')
         m = re.search(r'\(([0-9]+(?:[.,][0-9]+)?)%\)', t)
         if m: return m.group(1).replace(',', '.')
     except Exception: pass
     return "0.00"
+
+def extrair_parciais_moodle(p: Optional[Path], q_weights: dict) -> dict[int, float]:
+    """
+    Lê o execution.txt e extrai o PartialGrade de cada questão, na ordem
+    em que aparecem (Q1, Q2, …).  Retorna {q: pct} onde pct está em 0‒100.
+    """
+    parciais: dict[int, float] = {}
+    if not p or not p.exists():
+        return parciais
+    try:
+        t = p.read_text(errors='replace')
+        valores = re.findall(r'PartialGrade\s*:=+>>\s*([0-9]+(?:[.,][0-9]+)?)', t)
+        for i, q in enumerate(sorted(q_weights)):
+            if i < len(valores):
+                parciais[q] = float(valores[i].replace(',', '.'))
+    except Exception:
+        pass
+    return parciais
 
 
 # =============================================================================
@@ -120,8 +148,14 @@ def find_code_file(d: Path, q: int, exts: list[str]) -> Optional[Path]:
     return None
 
 def find_moodle_exec(sd: Path, sub: Path) -> Optional[Path]:
-    ef = sd / (sub.name + ".ceg") / "execution.txt"
+    ceg = sd / (sub.name + ".ceg")
+    ef = ceg / "execution.txt"
     return ef if ef.exists() else None
+
+def find_grade_file(sd: Path, sub: Path) -> Optional[Path]:
+    ceg = sd / (sub.name + ".ceg")
+    gf = ceg / "grade.txt"
+    return gf if gf.exists() else None
 
 
 # =============================================================================
@@ -157,7 +191,8 @@ def _wrap(text: str, indent: str = "  ") -> list[str]:
     return lines
 
 
-def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, provider):
+def build_rubrica(name, responses, code_files, tipos,
+                  moodle_exec, grade_file, q_weights, provider):
     L = []
     total = sum(q_weights.values())
     now   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -170,11 +205,18 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, pr
     ]))
     L.append("")
 
-    nm = extrair_nota_moodle(moodle_exec)
+    nm = extrair_nota_moodle(moodle_exec, grade_file)   # <-- passa grade_file
+    parciais_moodle = extrair_parciais_moodle(moodle_exec, q_weights)
+
     try:    nv = float(nm)
     except: nv = 0.0
+    detalhes_vpl = "  ".join(
+        f"Q{q}={parciais_moodle.get(q,0):.2f}%={parciais_moodle.get(q,0)*q_weights[q]/100:.3f}pts"
+        for q in sorted(q_weights)
+    )
     L += [_t(), _r(" CORREÇÃO MOODLE (VPL)"), _s(),
-          _r(f"  Nota : {nm}%  →  {nv*total/100:.2f} / {total} pts"), _b(), ""]
+        _r(f"  Por questão : {detalhes_vpl}"),
+        _r(f"  Nota total  : {nm}%  →  {nv*total/100:.2f} / {total} pts"), _b(), ""]
 
     ia: dict[int, float] = {}
     for q in sorted(q_weights):
@@ -219,8 +261,16 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, pr
     for q in sorted(q_weights):
         L.append(_r(f"   Q{q} (IA, TIPO {tipos.get(q,'?')}) : "
                     f"{ia.get(q,0):.0f} / {q_weights[q]} pts"))
+        
+    partes_moodle = " + ".join(
+        f"Q{q}={parciais_moodle.get(q,0):.2f}%"
+        f"={parciais_moodle.get(q,0)*q_weights[q]/100:.3f}"
+        for q in sorted(q_weights)
+    )
+
     L += [_r(sep),
-          _r(f"   Moodle : {nm}%  →  {mp:.2f} / {total} pts"),
+          _r(f"   Moodle : ({partes_moodle}) = {nm}% → "),
+          _r(f"            {mp:.0f} / {total} pts"),
           _r(f"   IA     : {ti:.0f} / {total} pts"),
           _r(sep),
           _r(f"   Diferença (IA - Moodle): {ti-mp:+.2f} pts"),
@@ -261,6 +311,7 @@ async def process_student(sd, llm, q_weights, universal_prompt,
             return {"student": name, "status": "failed", "reason": "erro leitura local"}
 
     moodle_exec = find_moodle_exec(sd, subdir)
+    grade_file   = find_grade_file(sd, subdir)
     code_files  = {q: find_code_file(subdir, q, exts) for q in q_weights}
 
     # Importa LLMResponse do módulo correto para criar respostas de erro inline
@@ -306,7 +357,10 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         else:
             tipos[q] = "?"
 
-    rubrica = build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, provider)
+    # build_rubrica precisa receber grade_file também
+    rubrica = build_rubrica(name, responses, code_files, tipos,
+                            moodle_exec, grade_file, q_weights, provider)
+
     rpath   = subdir / rubric_fname
     rpath.write_text(rubrica, encoding='utf-8')
     logger.info(f"  💾 {rpath.relative_to(sd.parent)}")
