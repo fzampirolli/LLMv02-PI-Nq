@@ -226,7 +226,7 @@ def main():
 
         # DESTINATARIO (ajuste aqui para producao ou teste)
         email_to = f"{login}@aluno.ufabc.edu.br"
-        #email_to = "fzampirolli@ufabc.edu.br"  # TESTE
+        email_to = "fzampirolli@ufabc.edu.br"  # TESTE
 
         sucesso, erro = envia_email(
             servidor, porta, FROM, PASS,

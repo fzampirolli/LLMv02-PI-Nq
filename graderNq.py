@@ -1,22 +1,57 @@
 """
 graderNq.py — Correção assíncrona de provas com N questões.
+
 Detecta automaticamente o tipo de cada questão pelo código do aluno.
-  A LLM identifica o tipo da questão e avalia em uma única chamada.
-  O prompt universal (prompt.txt) contém as rubricas de todos os tipos.
+A LLM identifica o tipo da questão e avalia em uma única chamada.
+O prompt universal (grading.prompt_file) contém as rubricas de todos os tipos.
+
+Provider selecionado via config.yaml → llm.provider: groq | deepseek
+Os modelos do provider ativo são variados em sequência até obter resposta.
 """
 
 from __future__ import annotations
-import argparse, asyncio, logging, re, sys
+import argparse, asyncio, importlib, logging, re, sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 import yaml
-from llm_interface_prova import LLMClientProva, LLMResponse
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Extração de nota (IA) ─────────────────────────────────────────────────────
+
+# =============================================================================
+# Importação dinâmica do cliente LLM conforme provider configurado
+# =============================================================================
+
+def load_llm_client(provider: str):
+    """
+    Retorna a classe LLMClientProva do módulo correspondente ao provider.
+      groq      → llm_interface_prova_groq
+      deepseek  → llm_interface_prova_deepseek
+    """
+    module_map = {
+        "groq":     "llm_interface_prova_groq",
+        "deepseek": "llm_interface_prova_deepseek",
+    }
+    module_name = module_map.get(provider)
+    if not module_name:
+        logger.error(f"❌ Provider desconhecido: '{provider}'. Use 'groq' ou 'deepseek'.")
+        sys.exit(1)
+    try:
+        mod = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        logger.error(f"❌ Módulo '{module_name}.py' não encontrado no diretório.")
+        sys.exit(1)
+    if not hasattr(mod, "LLMClientProva"):
+        logger.error(f"❌ '{module_name}.py' não define a classe LLMClientProva.")
+        sys.exit(1)
+    return mod.LLMClientProva
+
+
+# =============================================================================
+# Extração de nota (IA)
+# =============================================================================
 
 def extrair_nota_texto(texto: str, q_weight: int) -> str:
     m = re.search(r'[0-9]+(?:[^+\n=]*\+[^+\n=]*[0-9]+)+\s*=\s*([0-9]+(?:[.,][0-9]+)?)', texto, re.IGNORECASE)
@@ -48,7 +83,10 @@ def extrair_nota_texto(texto: str, q_weight: int) -> str:
         except ValueError: continue
     return "?"
 
-# ── Extração de nota (Moodle) ─────────────────────────────────────────────────
+
+# =============================================================================
+# Extração de nota (Moodle)
+# =============================================================================
 
 def extrair_nota_moodle(p: Optional[Path]) -> str:
     if not p or not p.exists(): return "N/A"
@@ -61,7 +99,10 @@ def extrair_nota_moodle(p: Optional[Path]) -> str:
     except Exception: pass
     return "0.00"
 
-# ── Localização de arquivos ───────────────────────────────────────────────────
+
+# =============================================================================
+# Localização de arquivos
+# =============================================================================
 
 DEFAULT_EXTS = ['py', 'java', 'c', 'cpp', 'js', 'ts', 'r', 'R']
 
@@ -82,9 +123,12 @@ def find_moodle_exec(sd: Path, sub: Path) -> Optional[Path]:
     ef = sd / (sub.name + ".ceg") / "execution.txt"
     return ef if ef.exists() else None
 
-# ── Formatação ────────────────────────────────────────────────────────────────
 
-W = 76   # largura interna (entre │ e │)
+# =============================================================================
+# Formatação de rubrica
+# =============================================================================
+
+W = 76
 
 def _t(): return "┌" + "─"*W + "┐"
 def _b(): return "└" + "─"*W + "┘"
@@ -93,24 +137,14 @@ def _r(s): return "│" + s + " "*max(0, W - len(s)) + "│"
 def box(ls): return "\n".join([_t()] + [_r(l) for l in ls] + [_b()])
 
 def _wrap(text: str, indent: str = "  ") -> list[str]:
-    """
-    Quebra uma string longa em múltiplas linhas que cabem dentro da caixa.
-    Preserva linhas em branco e respeita recuo do texto original.
-    Remove negrito markdown (**texto**).
-    """
     import textwrap, re as _re
-    # Remove negrito markdown
     text = _re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    # Remove backticks inline
     text = text.replace('`', '')
-
-    max_w = W - len(indent) - 1   # espaço disponível dentro da borda
     lines = []
     for paragraph in text.splitlines():
         if paragraph.strip() == "":
             lines.append(_r(""))
             continue
-        # Preserva indentação original do parágrafo
         stripped = paragraph.lstrip()
         orig_indent = paragraph[: len(paragraph) - len(stripped)]
         prefix = indent + orig_indent
@@ -122,15 +156,15 @@ def _wrap(text: str, indent: str = "  ") -> list[str]:
             lines.append(_r(prefix + chunk))
     return lines
 
-# ── Rubrica ───────────────────────────────────────────────────────────────────
 
-def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights):
+def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, provider):
     L = []
     total = sum(q_weights.values())
     now   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     L.append(box([
         f" ALUNO   : {name}",
         f" DATA    : {now}",
+        f" PROVIDER: {provider.upper()}",
         f" QUESTÕES: {len(q_weights)}  " +
         "  ".join(f"Q{k}={v}pts" for k,v in sorted(q_weights.items())),
     ]))
@@ -151,19 +185,16 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights):
 
         L += [_t(), _r(f" Q{q}  (peso: {w} pts)  —  Tipo detectado: {tp}"), _s()]
 
-        # Código submetido — sem bordas laterais, texto livre
         if cf and cf.exists():
             L += [_r(f" Arquivo: {cf.name}"), _s()]
             for ln in cf.read_text(errors='replace').splitlines():
-                L.append("  " + ln)        # sem │ nas bordas
-            L.append(_s())                  # fecha bloco de código com ├───┤
+                L.append("  " + ln)
+            L.append(_s())
         else:
             L.append(_r(f" ⚠ Q{q}.* não encontrado na submissão"))
 
-        # Avaliação IA
         L += [_r(f" AVALIAÇÃO DA IA — Q{q} (TIPO {tp})"), _s()]
         if rp and rp.success and rp.content:
-            # Aplica word-wrap em cada linha da resposta da IA
             for ln in rp.content.splitlines():
                 L.extend(_wrap(ln, indent="  "))
             ns = extrair_nota_texto(rp.content, w)
@@ -180,7 +211,6 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights):
 
         L += [_b(), ""]
 
-    # Resumo comparativo
     ti = sum(ia.values())
     mp = nv * total / 100
     sep = "  " + "─" * (W - 4)
@@ -196,7 +226,6 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights):
           _r(f"   Diferença (IA - Moodle): {ti-mp:+.2f} pts"),
           _b(), ""]
 
-    # Log bruto Moodle — sem caixa, texto livre
     if moodle_exec and moodle_exec.exists():
         L += ["─" * (W + 2),
               " LOG BRUTO — CORREÇÃO DO MOODLE",
@@ -207,10 +236,13 @@ def build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights):
     L.append(box([f" ALUNO: {name}"]))
     return "\n".join(L)
 
-# ── Processamento de um aluno ─────────────────────────────────────────────────
+
+# =============================================================================
+# Processamento de um aluno
+# =============================================================================
 
 async def process_student(sd, llm, q_weights, universal_prompt,
-                           min_lines, min_chars, exts, sem, rubric_fname):
+                          min_lines, min_chars, exts, sem, rubric_fname, provider):
     name = sd.name
     logger.info(f"→ {name}")
     subdir = find_submission_dir(sd)
@@ -218,7 +250,6 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         logger.warning("  ⚠ Sem submissão — pulando")
         return {"student": name, "status": "skipped", "reason": "sem submissão"}
 
-    # === NOVA LÓGICA: Se existir, lê e retorna para o consolidado ===
     rpath = subdir / rubric_fname
     if rpath.exists():
         logger.info(f"  ⏭ Rubrica já existe — lendo arquivo local")
@@ -228,22 +259,25 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         except Exception as e:
             logger.error(f"  ❌ Erro ao ler rubrica existente: {e}")
             return {"student": name, "status": "failed", "reason": "erro leitura local"}
-    # ===============================================================
 
     moodle_exec = find_moodle_exec(sd, subdir)
     code_files  = {q: find_code_file(subdir, q, exts) for q in q_weights}
+
+    # Importa LLMResponse do módulo correto para criar respostas de erro inline
+    mod_name = "llm_interface_prova_deepseek" if provider == "deepseek" else "llm_interface_prova_groq"
+    LLMResponse = importlib.import_module(mod_name).LLMResponse
 
     async def call_one(q):
         w  = q_weights[q]
         cf = code_files.get(q)
         if cf is None:
             return q, LLMResponse(success=False, content="", model_used="",
-                                  attempts=0, duration_seconds=0.0,
+                                  duration_seconds=0.0,
                                   error=f"Q{q}.* não encontrado")
         code_text = cf.read_text(errors='replace')
         if len(code_text.splitlines()) < min_lines:
             return q, LLMResponse(success=False, content="", model_used="",
-                                  attempts=0, duration_seconds=0.0,
+                                  duration_seconds=0.0,
                                   error=f"Código curto ({len(code_text.splitlines())} linhas, mínimo {min_lines})")
         prompt = (universal_prompt
                   + f"\n\nPeso máximo desta questão: {w} pontos.\n"
@@ -264,7 +298,6 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         logger.warning("  ⚠ Nenhuma resposta LLM válida")
         return {"student": name, "status": "failed", "reason": "sem resposta LLM"}
 
-    # Extrai tipo identificado pela LLM para exibição na rubrica
     tipos: dict[int, str] = {}
     for q, resp in responses.items():
         if resp.success and resp.content:
@@ -273,74 +306,100 @@ async def process_student(sd, llm, q_weights, universal_prompt,
         else:
             tipos[q] = "?"
 
-    rubrica = build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights)
+    rubrica = build_rubrica(name, responses, code_files, tipos, moodle_exec, q_weights, provider)
     rpath   = subdir / rubric_fname
     rpath.write_text(rubrica, encoding='utf-8')
     logger.info(f"  💾 {rpath.relative_to(sd.parent)}")
     return {"student": name, "status": "ok", "content": rubrica}
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+
+# =============================================================================
+# Main
+# =============================================================================
 
 async def main_async(args):
     cfg   = yaml.safe_load(open(args.config, encoding='utf-8'))
-    groq  = cfg.get('groq', {})
     grade = cfg.get('grading', {})
     paths = cfg.get('paths', {})
 
-    # ── Validações básicas ────────────────────────────────────────────────────
-    api_key = groq.get('api_key', '')
+    # ── Provider ──────────────────────────────────────────────────────────────
+    provider = cfg.get('llm', {}).get('provider', 'groq').strip().lower()
+    if provider not in ('groq', 'deepseek'):
+        logger.error(f"❌ llm.provider inválido: '{provider}'. Use 'groq' ou 'deepseek'.")
+        sys.exit(1)
+
+    # Seção de config do provider ativo
+    provider_cfg = cfg.get(provider, {})
+    api_key = provider_cfg.get('api_key', '')
     if not api_key or 'COLOQUE' in api_key:
-        logger.error("❌ groq.api_key não configurada em config.yaml"); sys.exit(1)
+        logger.error(f"❌ {provider}.api_key não configurada em config.yaml")
+        sys.exit(1)
+
+    # Normaliza models para lista
+    raw_models = provider_cfg.get('models', [])
+    models = [raw_models] if isinstance(raw_models, str) else list(raw_models)
+    if not models:
+        logger.error(f"❌ {provider}.models não configurado em config.yaml")
+        sys.exit(1)
 
     if not grade.get('use_llm', True):
-        logger.warning("⚠ use_llm: false — análise da IA desativada."); sys.exit(0)
+        logger.warning("⚠ use_llm: false — análise da IA desativada.")
+        sys.exit(0)
 
-    # ── Pasta de alunos: argumento CLI > paths.student_base_dir ──────────────
+    # ── Pasta de alunos ───────────────────────────────────────────────────────
     student_base_str = args.student_dir or paths.get('student_base_dir', '')
     if not student_base_str:
-        logger.error("❌ Informe a pasta de alunos ou configure paths.student_base_dir"); sys.exit(1)
+        logger.error("❌ Informe a pasta de alunos ou configure paths.student_base_dir")
+        sys.exit(1)
     base = Path(student_base_str)
     if not base.is_dir():
-        logger.error(f"❌ Pasta não encontrada: {base}"); sys.exit(1)
+        logger.error(f"❌ Pasta não encontrada: {base}")
+        sys.exit(1)
 
     # ── Parâmetros de avaliação ───────────────────────────────────────────────
     q_weights = {int(re.sub(r'\D', '', str(k))): int(v)
                  for k, v in grade.get('weights', {}).items()}
     if not q_weights:
-        logger.error("❌ grading.weights não configurado"); sys.exit(1)
+        logger.error("❌ grading.weights não configurado")
+        sys.exit(1)
 
     min_lines   = int(grade.get('min_code_lines', 4))
-    min_chars   = int(groq.get('min_response_chars', 5))
+    min_chars   = int(provider_cfg.get('min_response_chars', 5))
     rubric_name = paths.get('output_rubric_filename', 'rubrica.txt')
     exts        = grade.get('supported_extensions', DEFAULT_EXTS)
 
-    # ── Prompt universal ────────────────────────────────────────────────────
+    # ── Prompt universal — lido de grading.prompt_file ────────────────────────
     prompt_file = Path(grade.get('prompt_file', 'prompt.txt'))
     if not prompt_file.exists():
-        logger.error(f"❌ Prompt não encontrado: {prompt_file}"); sys.exit(1)
+        logger.error(f"❌ Prompt não encontrado: {prompt_file}")
+        logger.error(f"   Verifique grading.prompt_file em {args.config}")
+        sys.exit(1)
     universal_prompt = prompt_file.read_text(encoding='utf-8')
-    logger.info(f"  📝 Prompt: {prompt_file}")
 
     # ── Pastas de alunos ──────────────────────────────────────────────────────
     student_dirs = sorted([d for d in base.iterdir()
                            if d.is_dir() and not d.name.startswith('.')])
     if not student_dirs:
-        logger.error(f"❌ Nenhuma pasta de aluno em '{base}'"); sys.exit(1)
+        logger.error(f"❌ Nenhuma pasta de aluno em '{base}'")
+        sys.exit(1)
 
-    logger.info(f"\n  Pasta        : {base}")
+    logger.info(f"\n  Provider     : {provider.upper()}")
+    logger.info(f"  Prompt       : {prompt_file}")
+    logger.info(f"  Pasta        : {base}")
     logger.info(f"  Alunos       : {len(student_dirs)}")
     logger.info(f"  Questões     : {', '.join(f'Q{k}={v}pts' for k,v in sorted(q_weights.items()))}")
     logger.info(f"  Extensões    : {exts}")
-    logger.info(f"  Modelos      : {groq.get('models', [])}")
+    logger.info(f"  Modelos      : {models}")
     logger.info(f"  Concorrência : {args.max_concurrent}\n")
 
-    # ── Execução ──────────────────────────────────────────────────────────────
-    # LLMClientProva recebe o config completo (lê api_url, api_key, models, etc.)
+    # ── Carrega cliente LLM conforme provider ─────────────────────────────────
+    LLMClientProva = load_llm_client(provider)
+
     sem = asyncio.Semaphore(args.max_concurrent)
     async with LLMClientProva(config=cfg) as llm:
         results = await asyncio.gather(*[
             process_student(d, llm, q_weights, universal_prompt,
-                            min_lines, min_chars, exts, sem, rubric_name)
+                            min_lines, min_chars, exts, sem, rubric_name, provider)
             for d in student_dirs])
 
     # ── Consolida ALL.txt ─────────────────────────────────────────────────────
@@ -359,6 +418,7 @@ async def main_async(args):
     logger.info(f"  📄 Consolidado : {all_path}")
     logger.info(f"{'─'*58}\n")
 
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("student_dir", nargs="?", default=None,
@@ -366,6 +426,7 @@ def main():
     p.add_argument("config", nargs="?", default="config.yaml")
     p.add_argument("--max-concurrent", type=int, default=3, dest="max_concurrent")
     asyncio.run(main_async(p.parse_args()))
+
 
 if __name__ == "__main__":
     main()

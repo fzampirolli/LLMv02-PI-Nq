@@ -13,6 +13,8 @@ log_envios.csv
 
 # === Pastas de Dados e Arquivos de Texto ===
 p1moodle/
+p2moodle0/
+p2moodle*
 logs/
 # Bloqueia os arquivos de texto ALL, exceto se for da p1moodle0
 p1moodle*_ALL.txt

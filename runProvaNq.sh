@@ -20,9 +20,8 @@
 #    │       └── execution.txt
 #    └── ...
 #
-#  O tipo de cada questão (A ou B) é detectado automaticamente pelo conteúdo
-#  do código. O prompt correto (ex. prompt.txt) é selecionado
-#  e enviado à API Groq junto com o código do aluno.
+#  O provider ativo (groq|deepseek) e o prompt_file são lidos de config.yaml.
+#  Os modelos são variados em sequência até se obter uma resposta válida.
 # =============================================================================
 
 [ -z "${BASH_VERSION:-}" ] && { echo "❌ Execute com bash: bash $0 $*" >&2; exit 1; }
@@ -39,7 +38,7 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
 echo -e "${BOLD}${CYAN}"
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║   Correção Automática de Provas — N Questões (IA)        ║"
-echo "║   A LLM identifica o tipo e avalia em uma única chamada  ║"
+echo "║   Provider e prompt lidos do config.yaml                 ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo -e "${RESET}"
 echo -e "  Início : $(date '+%Y-%m-%d %H:%M:%S')"
@@ -92,22 +91,76 @@ for pkg in aiohttp yaml; do
 done
 echo -e "  ${GREEN}✓${RESET} Dependências Python OK (aiohttp, pyyaml)"
 
-# Arquivos obrigatórios
-for f in "$CONFIG_FILE" "graderNq.py" "llm_interface_prova.py" "prompt.txt"; do
+# config.yaml obrigatório
+CONFIG_PATH="$SCRIPT_DIR/$CONFIG_FILE"
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo -e "${RED}❌ Arquivo não encontrado: $CONFIG_FILE${RESET}"; exit 1
+fi
+echo -e "  ${GREEN}✓${RESET} $CONFIG_FILE encontrado"
+
+# ── Lê provider e prompt_file do config.yaml via Python ──────────────────────
+read -r LLM_PROVIDER PROMPT_FILE < <($PYTHON - "$CONFIG_PATH" <<'PYEOF'
+import sys, yaml
+cfg = yaml.safe_load(open(sys.argv[1], encoding='utf-8'))
+provider    = cfg.get('llm', {}).get('provider', 'groq').strip().lower()
+prompt_file = cfg.get('grading', {}).get('prompt_file', 'promptP2.txt').strip()
+print(provider, prompt_file)
+PYEOF
+)
+
+echo -e "  ${GREEN}✓${RESET} Provider ativo   : ${BOLD}${LLM_PROVIDER}${RESET}"
+echo -e "  ${GREEN}✓${RESET} Arquivo de prompt : ${BOLD}${PROMPT_FILE}${RESET}"
+
+# ── Valida o arquivo de prompt (lido do config.yaml) ─────────────────────────
+PROMPT_PATH="$SCRIPT_DIR/$PROMPT_FILE"
+if [ ! -f "$PROMPT_PATH" ]; then
+    echo -e "${RED}❌ Prompt não encontrado: $PROMPT_FILE"
+    echo -e "   Verifique a chave grading.prompt_file em $CONFIG_FILE${RESET}"
+    exit 1
+fi
+echo -e "  ${GREEN}✓${RESET} Prompt encontrado : $PROMPT_FILE"
+
+# ── Valida arquivos obrigatórios do projeto ───────────────────────────────────
+for f in "graderNq.py" "llm_interface_prova_groq.py" "llm_interface_prova_deepseek.py"; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then
         echo -e "${RED}❌ Arquivo não encontrado: $f${RESET}"; exit 1
     fi
 done
-echo -e "  ${GREEN}✓${RESET} Arquivos do projeto OK (graderNq.py, prompt.txt — universal)"
+echo -e "  ${GREEN}✓${RESET} Arquivos do projeto OK (graderNq.py, llm_interface_prova.py)"
 
-# Pasta de alunos
+# ── Valida provider e exibe modelos configurados ──────────────────────────────
+case "$LLM_PROVIDER" in
+    groq|deepseek)
+        # Lê lista de modelos do provider ativo
+        MODELS=$($PYTHON - "$CONFIG_PATH" "$LLM_PROVIDER" <<'PYEOF'
+import sys, yaml
+cfg      = yaml.safe_load(open(sys.argv[1], encoding='utf-8'))
+provider = sys.argv[2]
+section  = cfg.get(provider, {})
+models   = section.get('models', [])
+# models pode ser string (deepseek) ou lista (groq)
+if isinstance(models, str):
+    models = [models]
+print(', '.join(models) if models else '(nenhum)')
+PYEOF
+        )
+        echo -e "  ${GREEN}✓${RESET} Modelos (${LLM_PROVIDER}) : $MODELS"
+        ;;
+    *)
+        echo -e "${RED}❌ Provider desconhecido: '$LLM_PROVIDER'"
+        echo -e "   Valores aceitos em config.yaml → llm.provider: groq | deepseek${RESET}"
+        exit 1
+        ;;
+esac
+
+# ── Pasta de alunos ───────────────────────────────────────────────────────────
 if [ ! -d "$SCRIPT_DIR/$STUDENT_DIR" ]; then
     echo -e "${RED}❌ Pasta não encontrada: $STUDENT_DIR${RESET}"; exit 1
 fi
 NALUNOS=$(find "$SCRIPT_DIR/$STUDENT_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 echo -e "  ${GREEN}✓${RESET} Pasta '$STUDENT_DIR' encontrada — $NALUNOS pasta(s) de aluno(s)"
 
-# Lock
+# ── Lock ──────────────────────────────────────────────────────────────────────
 LOCKFILE="/tmp/runProvaNq_$(echo "$STUDENT_DIR" | tr '/. ' '___').lock"
 if [ -f "$LOCKFILE" ]; then
     echo -e "${YELLOW}⚠ Já existe uma execução em andamento para '$STUDENT_DIR'.${RESET}"
@@ -121,6 +174,9 @@ echo ""
 echo -e "${BOLD}[2/5] Configuração${RESET}"
 echo -e "  Pasta        : $STUDENT_DIR"
 echo -e "  Config       : $CONFIG_FILE"
+echo -e "  Provider     : $LLM_PROVIDER"
+echo -e "  Prompt       : $PROMPT_FILE"
+echo -e "  Modelos      : $MODELS"
 echo -e "  Concorrência : $MAX_CONCURRENT chamadas simultâneas"
 echo ""
 
