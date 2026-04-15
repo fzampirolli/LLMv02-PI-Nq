@@ -1,3 +1,5 @@
+# python3 gerar_relatorio.py p1moodle_ALL.txt
+
 import re
 import csv
 import os
