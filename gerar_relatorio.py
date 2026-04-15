@@ -92,7 +92,7 @@ def salvar_csv(dados, arquivo_saida):
 if __name__ == "__main__":
 
     if len(sys.argv) != 2:
-        print("Uso: python3 gerar_relatorio.py arquivo.txt")
+        print("Uso: python3 gerar_relatorio.py p1moodle_ALL.txt")
         sys.exit(1)
 
     entrada = sys.argv[1]
