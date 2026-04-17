@@ -32,9 +32,8 @@ ETAPA 2 — AVALIAÇÃO PELA RUBRICA DO TIPO IDENTIFICADO
 Use APENAS a rubrica correspondente ao tipo que você identificou.
 
 ══════════════════════════════════════════════════════════════
-RUBRICA DO TIPO A — Operações com Matrizes
-══════════════════════════════════════════════════════════════
-
+[START_RUBRICA_A]
+TIPO A — Operações com Matrizes
 Critério 1 — Entrada e Funções X (max 10 pts)
   - Lê corretamente as dimensões L e C e as matrizes A e B.
 
@@ -46,37 +45,48 @@ Critério 3 — Saída e Exibição Z (max 10 pts)
   - Imprime os rótulos "A:", "B:" e a operação (ex: "A+B:") conforme o modelo (5 pts).
   - Exibe o conteúdo das matrizes respeitando as quebras de linha (5 pts).
 
-Nota: X + Y + Z  (max: 50)
+Nota: X + Y + Z (max: 50)
+[END_RUBRICA_A]
 
 ══════════════════════════════════════════════════════════════
-RUBRICA DO TIPO B — Notas e Conceitos (Matriz Ampliada)
-══════════════════════════════════════════════════════════════
-
+[START_RUBRICA_B]
+TIPO B — Notas e Conceitos (Matriz Ampliada)
 Critério 1 — Entrada e Estrutura X (max 10 pts)
   - Lê o número de alunos L e a matriz Lx6 de notas iniciais (5 pts).
-  - Cria ou amplia a matriz para o formato Lx9 (ou lida com as colunas extras corretamente) (5 pts).
+  - Cria ou amplia a matriz para o formato Lx9 (5 pts).
 
 Critério 2 — Cálculos e Fórmulas Y (max 25 pts)
-  - Cálculo da Nota Base N (ponderada: 0.3*P1 + 0.3*P2 + 0.4*P3) (5 pts).
-  - Cálculo da Pré-REC com bônus dos simulados (1 + soma_simulados * 0.005) (10 pts).
-  - Atribuição correta dos conceitos A, B, C, D, F conforme as faixas de nota (10 pts).
+  - Cálculo da Nota Base N (0.3*P1 + 0.3*P2 + 0.4*P3) (5 pts).
+  - Cálculo da Pré-REC com bônus (1 + soma_simulados * 0.005) (10 pts).
+  - Atribuição correta dos conceitos A, B, C, D, F (10 pts).
 
 Critério 3 — Estatísticas e Saída Z (max 15 pts)
-  - Exibe a tabela formatada com cabeçalho e notas dos alunos (5 pts).
+  - Exibe a tabela formatada com cabeçalho e notas (5 pts).
   - Calcula e exibe a média da turma e a distribuição de conceitos (5 pts).
-  - Lista corretamente os alunos (ID:Nota) que ficaram acima da média da turma (5 pts).
+  - Lista corretamente os alunos (ID:Nota) acima da média (5 pts).
 
-Nota: X + Y + Z  (max: 50)
+Nota: X + Y + Z (max: 50)
+[END_RUBRICA_B]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATO OBRIGATÓRIO DA RESPOSTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(formatar linhas em no máximo 90 caracteres)
+
 Tipo identificado: [A ou B]
 
-Rubrica [A ou B] — Nome da Questão
-Critério 1: [X/X pts] - Breve justificativa
-Critério 2: [X/X pts] - Breve justificativa
-Critério 3: [X/X pts] - Breve justificativa
+TIPO [A ou B] — Nome da Questão
+-------------------------------
 
-NOTA FINAL: [Soma dos pontos]
+Critério 1 - [X/X pts]: 
+  - Breve justificativa
+
+Critério 2 - [X/X pts]: 
+  - Breve justificativa
+
+Critério 3 - [X/X pts]: 
+  - Breve justificativa
+
+NOTA FINAL: [Soma dos pontos]/máximo
+
 Comentários para o aluno: [Feedback construtivo sobre o código]

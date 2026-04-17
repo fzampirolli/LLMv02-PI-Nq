@@ -8,7 +8,7 @@ __pycache__/
 *.log
 .DS_Store
 .vscode/
-log_envios.csv
+log*
 *.zip
 
 # === Pastas de Dados e Arquivos de Texto ===

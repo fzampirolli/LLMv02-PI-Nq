@@ -199,8 +199,13 @@ if [ $EXIT_CODE -eq 0 ]; then
         echo -e "  ${GREEN}✓${RESET} Processados  : $NRUBRICAS aluno(s)"
     fi
 
+    echo "📂 Gerando arquivo consolidado ${STUDENT_DIR}_ALL.txt..."
+    find "$STUDENT_DIR" -name "rubrica.txt" -exec sh -c 'echo "================================================================================"; echo "ALUNO: {}"; echo "================================================================================"; cat "{}"; echo -e "\n\n"' \; > "${STUDENT_DIR}_ALL.txt"
+
+    echo "✅ Arquivo consolidado gerado com sucesso!"
+
     echo ""
-    echo -e "${BOLD}[5/5] Próximos passos${RESET}"
+    echo -e "${BOLD}[5/5] Próximos passos${RESET}"    
     echo -e "  cat ${STUDENT_DIR}_ALL.txt | less                      # ver todos os resultados"
     echo -e "  python3 gerar_relatorio.py ${STUDENT_DIR}_ALL.txt      # gerar relatório CSV"
     echo -e "  python3 enviar_email.py                           # enviar feedbacks (opcional)"
