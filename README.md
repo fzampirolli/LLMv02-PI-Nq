@@ -361,16 +361,3 @@ logs/
 ```
 
 **Nunca compartilhe nem publique o `config.yaml`.**
-```
-
-## Principais correções realizadas:
-
-1. **Nome do script principal**: `main.py` (não `graderNq.py`)
-2. **Script wrapper**: `run.sh` (não `runProvaNq.sh`)
-3. **Configuração de provedor**: Seção `llm.provider` com opções `groq/deepseek/gemini`
-4. **Arquivo de prompt**: Referência correta a `promptP3.txt`
-5. **CSV gerado**: `{pasta}_relatorio.csv` (não `_ALL.csv`)
-6. **Comandos Python**: Distinção entre `python3` (Linux/macOS) e `python` (Windows)
-7. **Estrutura de diretórios**: Exemplo com `p3moodle` em vez de `p1moodle0`
-8. **Remoção de referências inexistentes**: `renomear_pastas.sh` (mencionado como necessário, mas não incluso)
-9. **Adição de todos os provedores**: Groq, DeepSeek e Gemini com suas configurações
