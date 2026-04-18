@@ -62,10 +62,22 @@ def find_latest_submission(student_dir: Path) -> Optional[Path]:
     return sub_dirs[0] if sub_dirs else None
 
 def get_code_content(sub_dir: Path, q_num: int, extensions: list) -> Optional[str]:
+    # Tenta pelo padrão Qi.* (prova com múltiplas questões)
     for ext in extensions:
-        f = sub_dir / f"Q{q_num}.{ext}" # Busca na mesma pasta que a rubrica
+        f = sub_dir / f"Q{q_num}.{ext}"
         if f.exists():
             return f.read_text(errors='replace')
+    
+    # Fallback: prova com única questão — pega qualquer arquivo com extensão suportada
+    arquivos = [
+        f for f in sub_dir.iterdir()
+        if f.is_file() and f.suffix.lstrip('.') in extensions
+    ]
+    
+    # Só usa o fallback se houver exatamente 1 arquivo (garante que é prova de 1 questão)
+    if len(arquivos) == 1:
+        return arquivos[0].read_text(errors='replace')
+    
     return None
 
 

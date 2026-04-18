@@ -8,6 +8,7 @@ __pycache__/
 *.log
 .DS_Store
 .vscode/
+.~*
 log*
 *.zip
 
