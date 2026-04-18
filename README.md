@@ -1,13 +1,17 @@
 # Sistema de Correção Automática de Provas com IA — N Questões
-
+ 
 Correção assíncrona de submissões do Moodle VPL usando LLMs (Groq, DeepSeek ou Gemini).
 Para cada aluno, é gerado um arquivo `rubrica.txt` com a análise da IA por questão, além de uma comparação com a nota atribuída pelo Moodle.
-
-As provas são criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.ufabc.edu.br)), com questões **paramétricas** e sorteadas para os alunos. As soluções devem ser submetidas em uma atividade VPL, contendo vários arquivos com nomes específicos: `Q1.*`, `Q2.*`, etc., onde `*` representa a **extensão da linguagem escolhida pelo aluno**.
-
+ 
+As provas com mais de uma questão por atividade VPL devem ser criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.ufabc.edu.br)), podendo ser com questões **paramétricas** e podem ser sorteadas para os alunos.
+ 
+As soluções devem ser submetidas em uma única atividade VPL. O sistema suporta dois cenários:
+ 
+- **Prova com múltiplas questões:** os arquivos devem seguir o padrão `Q1.*`, `Q2.*`, etc., onde `*` representa a extensão da linguagem escolhida pelo aluno (ex: `Q1.py`, `Q2.java`).
+- **Prova com única questão:** o arquivo pode ter qualquer nome e extensão suportada (ex: `solucao.py`, `prova.c`).
 > ⚠️ **A nota final é sempre atribuída pelo professor por meio de avaliação manual.**
 > A correção da IA serve apenas como apoio ao processo de aprendizagem e pode conter imprecisões.
-
+ 
 ---
 
 ## Arquivos do Projeto
@@ -21,8 +25,8 @@ As provas são criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.u
 ├── gerar_relatorio.py       ← converte ALL.txt em CSV
 ├── enviar_email.py          ← envia rubricas por e-mail
 ├── providers/               ← clientes das APIs
-│   ├── __init__.py
-│   ├── base.py
+│   ├── __init__.py          ← fábrica de clientes (Factory)
+│   ├── base.py              ← lógica de retry e fallback entre modelos
 │   ├── groq.py
 │   ├── deepseek.py
 │   └── gemini.py
@@ -32,9 +36,9 @@ As provas são criadas no MCTest ([https://mctest.ufabc.edu.br](https://mctest.u
 └── p3moodle/                ← pasta com submissões dos alunos
     ├── Nome Aluno - login/
     │   ├── 2026-03-04-10-14-39/       ← última submissão
-    │   │   ├── Q1.py
+    │   │   ├── Q1.py                  ← padrão para múltiplas questões
     │   │   ├── Q2.py
-    │   │   └── rubrica.txt            ← gerado pela LLM
+    │   │   └── rubrica.txt            ← gerado pela LLM (somente se avaliação válida)
     │   └── 2026-03-04-10-14-39.ceg/
     │       └── execution.txt          ← correção do Moodle
     └── ...
@@ -100,16 +104,18 @@ Copy-Item config.yaml.example config.yaml
 ```yaml
 # --- Provedor LLM ativo ---
 llm:
-  provider: "deepseek"   # opções: groq | deepseek | gemini
+  provider: "groq"   # opções: groq | deepseek | gemini
 
 # --- Configuração da API do provedor escolhido ---
-deepseek:
-  api_url: "https://api.deepseek.com/v1/chat/completions"
+groq:
+  api_url: "https://api.groq.com/openai/v1/chat/completions"
   api_key: "SUA_CHAVE_AQUI"
   temperature: 0.3
-  max_response_chars: 8000
   models:
-    - "deepseek-chat"
+    - "llama-3.3-70b-versatile"   # tentados em ordem aleatória
+    - "openai/gpt-oss-120b"       # para distribuir carga entre alunos
+    - "llama-3.1-8b-instant"      # simultâneos e evitar rate limit
+    - "openai/gpt-oss-20b"
 
 # --- Configuração do Processamento de Provas ---
 grading:
@@ -117,8 +123,6 @@ grading:
   weights:
     q1: 50
     q2: 50
-  use_llm: true
-  min_code_lines: 4
   supported_extensions:
     - py
     - java
@@ -139,12 +143,12 @@ paths:
 
 ### Estrutura do arquivo de prompt
 
-O arquivo especificado em `grading.prompt_file` (ex: `promptP3.txt`) contém as rubricas de avaliação. A LLM:
+O arquivo especificado em `grading.prompt_file` (ex: `promptP3.txt`) contém as rubricas de avaliação. Como as questões são **sorteadas e embaralhadas por aluno** no MCTest, a LLM recebe o prompt completo com todas as rubricas e:
 
 1. Lê o código do aluno
-2. Identifica o tipo da questão
-3. Aplica a rubrica correspondente
-4. Retorna a nota no formato: `Nota: X + Y + Z = TOTAL/PESO`
+2. Identifica o tipo da questão (ex: Tipo A ou Tipo B)
+3. Aplica **apenas** a rubrica correspondente ao tipo identificado
+4. Retorna a avaliação e a nota no formato: `NOTA FINAL: X/PESO`
 
 ### Exemplo de rubrica no prompt
 
@@ -158,15 +162,56 @@ TIPO A — descrição
   Critério 3 — Saída                  (15 pts)
   Total: 50 pts
 [END_RUBRICA_A]
+
+[START_RUBRICA_B]
+TIPO B — descrição
+  ...
+[END_RUBRICA_B]
 ```
+
+> **Nota:** O prompt completo (com todos os tipos) é enviado em cada chamada, pois é necessário que a IA conheça todas as rubricas para identificar o tipo corretamente. Isso é intencional — não há como otimizar sem uma chamada prévia de identificação.
 
 ---
 
-## 5. Baixar as Submissões do Moodle VPL
+## 5. Comportamento do Sistema de Avaliação
+
+### Identificação de arquivos por questão
+
+| Cenário | Comportamento |
+|---------|---------------|
+| Prova com múltiplas questões | Busca `Q1.*`, `Q2.*` com extensão suportada |
+| Prova com única questão | Aceita qualquer arquivo com extensão suportada |
+| Aluno enviou só Q1 (prova de 2 questões) | Q1 avaliada, Q2 com nota 0 |
+| Aluno enviou só Q2 (prova de 2 questões) | Q2 avaliada, Q1 com nota 0 |
+
+### Geração do `rubrica.txt`
+
+O arquivo **só é salvo** se a IA retornar ao menos uma avaliação válida para as questões que possuem código. Caso contrário, o arquivo não é criado, forçando uma nova consulta na próxima execução (sem cache inválido).
+
+| Situação | Salva rubrica.txt? |
+|----------|--------------------|
+| Todas as questões com código avaliadas com sucesso | ✅ Sim |
+| IA falhou em ao menos uma questão com código | ❌ Não — reprocessa tudo |
+| Aluno sem nenhum arquivo de código | ❌ Não |
+| Tipo identificado como DESCONHECIDO | ❌ Não |
+
+### Fallback entre modelos (rate limit)
+
+Quando há múltiplos modelos configurados, o sistema:
+
+1. **Embaralha** a lista de modelos a cada chamada — alunos processados simultaneamente tendem a usar modelos diferentes, distribuindo o consumo de tokens por minuto (TPM)
+2. **Respeita o tempo sugerido** pelo provedor no erro 429 (ex: `Please try again in 3.99s`), em vez de usar backoff fixo
+3. **Tenta até 3 vezes** por modelo antes de passar ao próximo
+4. **Interrompe imediatamente** em erros de autenticação (401) ou saldo insuficiente (402)
+
+---
+
+## 6. Baixar as Submissões do Moodle VPL
 
 1. Acesse a atividade **VPL** no Moodle
 2. Clique em **Lista de envios**
-3. Clique na seta para baixo (⬇) no cabeçalho → **Baixar todos os envios**
+3. Clique na seta para baixo (⬇) no cabeçalho → **Baixar envios** ou 
+**Baixar todos os envios**
 4. Descompacte o `.zip` e mova para o projeto:
 
 ```bash
@@ -177,9 +222,9 @@ mv ~/Downloads/p3moodle ./p3moodle
 Move-Item "$env:USERPROFILE\Downloads\p3moodle" .\p3moodle
 ```
 
-### ⚠️ Corrigir nomes das pastas (se necessário)
+### ⚠️ Corrigir nomes das pastas
 
-Se os nomes das pastas vierem com acentos ou espaços problemáticos:
+A versão atual do VPL baixa as pastas com `sobrenome nome - login`. É necessário corrigir isso executando:
 
 ```bash
 bash renomear_pastas.sh p3moodle
@@ -187,7 +232,7 @@ bash renomear_pastas.sh p3moodle
 
 ---
 
-## 6. Executar a Correção com IA
+## 7. Executar a Correção com IA
 
 ### Usando o script wrapper (recomendado)
 
@@ -203,41 +248,48 @@ bash run.sh config.yaml
 bash run.sh config.yaml --log
 ```
 
-
 ### O que acontece durante a execução
 
 1. O sistema carrega o `config.yaml`
 2. Para cada aluno, localiza a **última submissão** (pasta com timestamp)
 3. Extrai a nota do Moodle do arquivo `.ceg/execution.txt`
-4. Para cada questão (`Q1.*`, `Q2.*`):
+4. Para cada questão:
+   - Localiza o arquivo de código (`Q1.*`, `Q2.*` ou qualquer arquivo para prova de 1 questão)
+   - Seleciona um modelo aleatório da lista configurada em `config.yaml`
    - Envia o código + prompt à LLM
-   - A LLM retorna a avaliação e a nota
+   - A LLM identifica o tipo e retorna a avaliação com a nota
 5. Processa **todos os alunos em paralelo** (controle de concorrência)
 6. Gera:
-   - `rubrica.txt` dentro da pasta de cada aluno
+   - `rubrica.txt` dentro da pasta de cada aluno (somente se avaliação válida)
+   - `{pasta}_ALL.txt` junta todos os arquivos `rubrica.txt` dos alunos
    - `{pasta}_relatorio.csv` com o resumo de todos os alunos
 
 ---
 
-## 7. Estrutura do rubrica.txt
+## 8. Estrutura do rubrica.txt
 
 Cada aluno recebe um `rubrica.txt` com:
 
 | Seção | Conteúdo |
-|---|---|
-| Cabeçalho | Nome do aluno, data, questões e pesos |
-| Correção Moodle | Nota extraída do `execution.txt` |
-| Por questão | Código + avaliação da IA por critério |
-| Resumo | Comparativo Moodle × IA |
+|-------|----------|
+| Resumo | Comparativo Moodle × IA com notas por questão |
+| Por questão | Código do aluno + critérios aplicados + avaliação da IA |
 
 ---
 
-## 8. Gerar Relatório CSV Consolidado
-
-Após a execução, o sistema já gera automaticamente o arquivo:
-
+## 9. Gerar Relatório CSV Consolidado
+ 
+Após a execução, o sistema já gera automaticamente os arquivos, ex.:
+ 
 ```
+p3moodle_ALL.csv
 p3moodle_relatorio.csv
+```
+ 
+Se a opção `--log` foi utilizada (`bash run.sh config.yaml --log`), também gera:
+ 
+```
+log_correcao_20260418_1016.txt
 ```
 
 ### Estrutura do CSV
@@ -254,17 +306,10 @@ p3moodle_relatorio.csv
 | Total_IA | Soma das notas IA |
 | Diferenca | `Total_IA - Total_Moodle` |
 
-### Converter ALL.txt para CSV (alternativa manual)
-
-Se precisar converter um arquivo `_ALL.txt` existente:
-
-```bash
-python3 gerar_relatorio.py p3moodle_ALL.txt
-```
 
 ---
 
-## 9. Envio de Feedbacks por E-mail (Opcional)
+## 10. Envio de Feedbacks por E-mail (Opcional)
 
 ```bash
 # macOS/Linux
@@ -299,7 +344,7 @@ templates:
 
 ---
 
-## 10. Modelos LLM Disponíveis por Provedor
+## 11. Modelos LLM Disponíveis por Provedor
 
 ### Groq
 | Modelo | Qualidade | Velocidade |
@@ -307,6 +352,9 @@ templates:
 | `llama-3.3-70b-versatile` | Alta | Média |
 | `openai/gpt-oss-120b` | Alta | Média |
 | `llama-3.1-8b-instant` | Média | Rápida |
+| `openai/gpt-oss-20b` | Média | Rápida |
+
+> **Dica:** Configure múltiplos modelos no `config.yaml` para distribuir automaticamente a carga entre alunos processados em paralelo e evitar erros de rate limit (429).
 
 ### DeepSeek
 | Modelo | Descrição |
@@ -324,20 +372,21 @@ templates:
 
 ---
 
-## 11. Solução de Problemas
+## 12. Solução de Problemas
 
 | Problema | Solução |
 |----------|---------|
 | `❌ Pasta de alunos não encontrada` | Verifique `paths.student_base_dir` no `config.yaml` |
 | `python3: comando não encontrado` (Windows) | Use `python` em vez de `python3` |
-| Nota IA = `?` | O prompt não tem a linha `Nota: X + Y + Z = TOTAL` |
-| Erro HTTP 429 (muitas requisições) | Reduza `--concurrent` ou aumente intervalo |
-| Tipo identificado como `DESCONHECIDO` | Revise as rubricas no arquivo de prompt |
-| Arquivo de código não encontrado | Verifique extensão em `supported_extensions` |
+| Nota IA = `?` | O prompt não retornou nota no formato esperado (`NOTA FINAL: X/PESO`) |
+| Erro HTTP 429 (rate limit) | Configure múltiplos modelos — o sistema faz fallback automático |
+| Tipo identificado como `DESCONHECIDO` | Revise as rubricas e características dos tipos no arquivo de prompt |
+| Arquivo de código não encontrado | Verifique extensão em `supported_extensions`; para prova de 1 questão, certifique-se de que há exatamente 1 arquivo na pasta |
+| `rubrica.txt` não gerado | A IA não retornou avaliação válida — verifique o log para detalhes |
 
 ---
 
-## 12. Privacidade — O que é enviado à API
+## 13. Privacidade — O que é enviado à API
 
 | Campo | Conteúdo | Dado pessoal? |
 |-------|----------|----------------|
@@ -348,7 +397,7 @@ templates:
 
 ---
 
-## 13. Segurança
+## 14. Segurança
 
 O `config.yaml` contém suas chaves de API. Ele já está no `.gitignore`:
 
