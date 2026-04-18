@@ -123,6 +123,9 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
         system_prompt = prompt_path.read_text(encoding='utf-8')
         extensions = config['grading'].get('supported_extensions', ['py', 'java', 'cpp'])
 
+        questoes_avaliadas = set()   # ← antes do loop
+        questoes_com_codigo = set()  # ← antes do loop
+
         # --- Dentro da função process_student, no loop das questões ---
         for q_key, weight in weights.items():
             q_num = int(''.join(filter(str.isdigit, q_key)))
@@ -133,8 +136,12 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
                 continue
 
             # Chamada da API
+            questoes_com_codigo.add(q_key)  # ← tem código
             response = await client.chat_completion(system_prompt, code)
 
+            if response.success:
+                questoes_avaliadas.add(q_key)  # ← IA respondeu com sucesso
+                
             # Extração de nota de forma segura
             nota_extraida = extrair_nota_ia(response.content, weight) if response.success else "0"
             try:
@@ -152,7 +159,8 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
                 tipo_detectado = match_tipo.group(1).upper() if match_tipo else "?" 
 
                 # 2. Carrega o conteúdo do promptP3.txt
-                prompt_content = Path(config['grading']['prompt_file']).read_text(encoding='utf-8')
+                #prompt_content = Path(config['grading']['prompt_file']).read_text(encoding='utf-8')
+                prompt_content = system_prompt  # Já carregado anteriormente
 
                 # 3. Regex simplificada usando as novas tags [START_RUBRICA_X] e [END_RUBRICA_X]
                 # O padrão .*? com re.DOTALL captura tudo entre as tags, incluindo quebras de linha.
@@ -231,8 +239,14 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
         resumo.append(_b())
 
         full_content = "\n".join(resumo) + "\n" + "\n".join(ia_blocks)
-        rubric_path.write_text(full_content, encoding='utf-8')
 
+        if questoes_avaliadas == questoes_com_codigo:
+            # Todas as questões com código foram avaliadas com sucesso
+            rubric_path.write_text(full_content, encoding='utf-8')
+        else:
+            faltando = questoes_com_codigo - questoes_avaliadas
+            logger.warning(f"  ⚠️ {student_name}: IA falhou em {faltando}. rubrica.txt NÃO foi salvo.")
+            
         return {
             "status": "ok",
             "student": student_name,

@@ -1,7 +1,9 @@
 import asyncio
 import time
 import logging
-import aiohttp  # <--- Verifique se este import está lá!
+import random
+import re
+import aiohttp
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
@@ -54,6 +56,10 @@ class BaseLLMClient:
         start_time = time.time()
         last_error = "Nenhum modelo configurado"
 
+        # Embaralha os modelos a cada chamada para distribuir a carga
+        modelos = self.models.copy()
+        random.shuffle(modelos)
+
         for model in self.models:
             for attempt in range(3):  # Máximo de 3 tentativas por modelo
                 try:
@@ -74,11 +80,17 @@ class BaseLLMClient:
                 except Exception as e:
                     last_error = str(e)
                     logger.warning(f"⚠️ Falha no modelo {model} [Tentativa {attempt+1}]: {last_error}")
-                    
-                    # Backoff exponencial: espera 2s, 4s...
-                    await asyncio.sleep(2 ** (attempt + 1))
-                    
-                    # Se for erro de autenticação ou saldo, não adianta tentar de novo
+
+                    # Respeita o tempo sugerido pelo Groq no erro 429
+                    retry_after = None
+                    if "429" in last_error:
+                        m = re.search(r'(?:try again in|retry after)\s*([\d.]+)\s*s', last_error, re.IGNORECASE)
+                        if m:
+                            retry_after = float(m.group(1)) + 0.5
+
+                    wait = retry_after if retry_after else 2 ** (attempt + 1)
+                    await asyncio.sleep(wait)
+
                     if any(x in last_error.lower() for x in ["401", "unauthorized", "402", "balance"]):
                         break
 

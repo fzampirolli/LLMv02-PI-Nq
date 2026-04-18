@@ -21,13 +21,15 @@ def extrair_nota_ia(texto: str, peso_max: int) -> str:
         if 0 <= v <= peso_max: return m.group(1).replace(',', '.')
 
     # Padrão 2: Formato TOTAL/PESO (ex: 45/50)
-    m = re.search(r'([0-9]+(?:[.,][0-9]+)?)\s*/\s*' + str(peso_max), texto)
+    #m = re.search(r'([0-9]+(?:[.,][0-9]+)?)\s*/\s*' + str(peso_max), texto)
+    m = re.search(r'\[?([0-9]+(?:[.,][0-9]+)?)\]?\s*/\s*' + str(peso_max), texto)
     if m:
         v = float(m.group(1).replace(',', '.'))
         if 0 <= v <= peso_max: return m.group(1).replace(',', '.')
 
     # Padrão 3: Palavras-chave (ex: Nota Final: 40 pontos)
-    m = re.search(r'(?:nota\s*final|total|pontuação)[^:\n]*[:\→]\s*([0-9]+(?:[.,][0-9]+)?)', texto, re.IGNORECASE)
+    #m = re.search(r'(?:nota\s*final|total|pontuação)[^:\n]*[:\→]\s*([0-9]+(?:[.,][0-9]+)?)', texto, re.IGNORECASE)
+    m = re.search(r'(?:nota\s*final|total|pontuação)[^:\n]*[:\→]\s*\[?([0-9]+(?:[.,][0-9]+)?)\]?', texto, re.IGNORECASE)
     if m:
         v = float(m.group(1).replace(',', '.'))
         if 0 <= v <= peso_max: return m.group(1).replace(',', '.')
