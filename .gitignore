@@ -18,6 +18,7 @@ p2moodle0/
 p2moodle*
 p3moodle*
 logs/
+Simulado*
 # Bloqueia os arquivos de texto ALL, exceto se for da p1moodle0
 p1moodle*_ALL.txt
 p1moodle*_ALL.csv

@@ -410,3 +410,17 @@ logs/
 ```
 
 **Nunca compartilhe nem publique o `config.yaml`.**
+
+
+## 🔄 Git Workflow (Para Co-autores)
+
+**Importante:** Nunca trabalhe diretamente na pasta `pdi-vc`. Todo o desenvolvimento ocorre em `si-md2`.
+
+1. **Início:** 
+
+```bash
+# Para deixar o repositório exatamente igual ao GitHub, faça:
+git fetch origin
+git reset --hard origin/main
+git clean -fd
+```
