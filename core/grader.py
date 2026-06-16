@@ -169,8 +169,8 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
 
                 if match_rubrica:
                     rubrica_texto = match_rubrica.group(1).strip()
-                else:
-                    rubrica_texto = f"ERRO: Critérios para TIPO {tipo_detectado} não encontrados no prompt."
+                #else:
+                #    rubrica_texto = f"ERRO: Critérios para TIPO {tipo_detectado} não encontrados no prompt."
                 
 
                 # 4. Limpeza do corpo da resposta (evita duplicar o "Tipo identificado")
@@ -185,9 +185,9 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
                 ia_blocks.append("")
 
                 # ── 1. Cabeçalho da rubrica ───────────────────────────────────────────
-                ia_blocks.append(_s())
-                ia_blocks.append(_r(f"CRITÉRIOS DE CORREÇÃO (TIPO {tipo_detectado})"))  # ← era "REGRA DE AVALIAÇÃO APLICADA"
-                ia_blocks.append(_s())
+                #ia_blocks.append(_s())
+                #ia_blocks.append(_r(f"CRITÉRIOS DE CORREÇÃO (TIPO {tipo_detectado})"))  # ← era "REGRA DE AVALIAÇÃO APLICADA"
+                #ia_blocks.append(_s())
                 #ia_blocks.append(rubrica_texto)
                 
                 # Adiciona separador abaixo do título da rubrica antes de exibi-la

@@ -186,6 +186,24 @@ def ler_nota_rubrica(arquivo_rubrica):
     except:
         return "", "Erro na leitura"
 
+import csv
+
+def carregar_emails_csv(caminho_csv):
+    """Retorna dict {email_completo: email} lendo a coluna 'Endereço de e-mail' do CSV do Moodle."""
+    emails = {}
+    try:
+        with open(caminho_csv, newline='', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f, delimiter=',')
+            for row in reader:
+                email = row.get('Endereço de e-mail', '').strip()
+                if email:
+                    login_sem_dominio = email.split('@')[0]
+                    emails[email] = email                    # chave: email completo
+                    emails[login_sem_dominio] = email        # chave: só o login (fallback)
+    except FileNotFoundError:
+        print(f"[ERRO] CSV não encontrado: {caminho_csv}")
+    return emails
+
 
 def main():
     config = carregar_configuracao()
@@ -208,25 +226,48 @@ def main():
         print("Nenhuma rubrica encontrada.")
         return
 
+    # Carrega mapeamento login → email do CSV do Moodle
+    caminho_csv = paths_cfg.get('emails_csv', './Simulado2.csv')
+    mapa_emails = carregar_emails_csv(caminho_csv)
+    print(f"[INFO] {len(mapa_emails)} e-mails carregados do CSV.")
+
     total = len(rubricas)
     enviados = 0
-    falhas = []  # lista de dicts com dados dos alunos que falharam
+    falhas = []
 
     print(f"\nIniciando envio para {total} aluno(s)...\n")
 
     for dados in sorted(rubricas, key=lambda x: x['nome_pasta'].lower()):
-        login = dados['login'].replace("_",".") # o Moodle baixa todos os emails com _ em vez de .
+        login_raw = dados['login'].replace("_", ".")
+        # Se o login já vier como email completo, usa direto; senão, busca pelo login
+        login = login_raw  # chave de busca no mapa
+
         nome_pasta = dados['nome_pasta']
         _, nota_info = ler_nota_rubrica(dados['arquivo_rubrica'])
 
         texto_email = template_cfg.get('corpo', "").format(
-            login=login, nome_pasta=nome_pasta, nota_info=nota_info
+            login=login_raw.split('@')[0],  # no corpo do email, usa só a parte antes do @
+            nome_pasta=nome_pasta,
+            nota_info=nota_info
         )
-        assunto = template_cfg.get('assunto', "").format(login=login)
+        assunto = template_cfg.get('assunto', "").format(login=login_raw.split('@')[0])
+
+        email_to = mapa_emails.get(login)
+        if not email_to:
+            print(f"[AVISO] Login '{login}' não encontrado no CSV, pulando.")
+            ...
+            falhas.append({
+                'login': login,
+                'email': 'não encontrado',
+                'nome_pasta': nome_pasta,
+                'arquivo_rubrica': dados['arquivo_rubrica'],
+                'erro': 'Login não encontrado no CSV de e-mails',
+            })
+            registrar_log(login, "ERRO", "Login não encontrado no CSV")
+            continue
 
         # DESTINATARIO (ajuste aqui para producao ou teste)
-        email_to = f"{login}@aluno.ufabc.edu.br"
-        email_to = "fzampirolli@gmail.com"  # TESTE
+        #email_to = "fzampirolli@gmail.com"  # TESTE
 
         sucesso, erro = envia_email(
             servidor, porta, FROM, PASS,
@@ -236,7 +277,7 @@ def main():
 
         if sucesso:
             enviados += 1
-            registrar_log(login, "SUCESSO", "")
+            registrar_log(login, "SUCESSO", f"Enviado para {email_to}")
         else:
             registrar_log(login, "ERRO", erro)
             falhas.append({
@@ -247,11 +288,9 @@ def main():
                 'erro': erro,
             })
 
+        #break  # remover em produção
 
-    # Resumo final no terminal
     print(f"\nResultado: {enviados}/{total} enviados com sucesso.")
-
-    # Gera relatorio de falhas (se houver)
     gerar_relatorio_falhas(falhas)
 
 
