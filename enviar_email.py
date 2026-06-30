@@ -267,7 +267,7 @@ def main():
             continue
 
         # DESTINATARIO (ajuste aqui para producao ou teste)
-        #email_to = "fzampirolli@gmail.com"  # TESTE
+        email_to = "fzampirolli@gmail.com"  # TESTE
 
         sucesso, erro = envia_email(
             servidor, porta, FROM, PASS,
@@ -288,7 +288,7 @@ def main():
                 'erro': erro,
             })
 
-        #break  # remover em produção
+        break  # remover em produção
 
     print(f"\nResultado: {enviados}/{total} enviados com sucesso.")
     gerar_relatorio_falhas(falhas)
