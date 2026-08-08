@@ -7,7 +7,9 @@ import ssl
 import os
 import glob
 import re
+import csv
 import yaml
+from pathlib import Path
 from datetime import datetime
 
 
@@ -174,19 +176,28 @@ def buscar_rubrica_txt(pasta_base):
 
 
 def ler_nota_rubrica(arquivo_rubrica):
+    """
+    Extrai a linha de nota total da IA a partir do resumo no topo do
+    rubrica.txt (formato fixo gerado por core/grader.py: "IA : X / Y pts").
+
+    IMPORTANTE: não usar mais uma busca genérica por palavras como
+    "nota"/"total"/"pontos" em qualquer linha do arquivo — desde que o
+    rubrica.txt passou a incluir o ENUNCIADO OFICIAL de cada questão
+    (extraído do VPL), esse texto também pode conter essas palavras,
+    e uma busca genérica corria o risco de capturar um trecho do
+    enunciado em vez do resumo real de nota.
+    """
     try:
         with open(arquivo_rubrica, 'r', encoding='utf-8') as f:
             conteudo = f.read()
-        nota_info = next(
-            (l.strip() for l in conteudo.split('\n')
-             if any(p in l.lower() for p in ['nota', 'total', 'pontos'])),
-            "Info nao encontrada"
-        )
+
+        m = re.search(r'IA\s*:\s*[\d.]+\s*/\s*\d+\s*pts', conteudo)
+        nota_info = m.group(0).strip() if m else "Info nao encontrada"
+
         return conteudo, nota_info
-    except:
+    except Exception:
         return "", "Erro na leitura"
 
-import csv
 
 def carregar_emails_csv(caminho_csv):
     """Retorna dict {email_completo: email} lendo a coluna 'Endereço de e-mail' do CSV do Moodle."""
@@ -203,6 +214,46 @@ def carregar_emails_csv(caminho_csv):
     except FileNotFoundError:
         print(f"[ERRO] CSV não encontrado: {caminho_csv}")
     return emails
+
+
+def carregar_revisar_manualmente(caminho_csv_relatorio):
+    """
+    Retorna {login: True/False} lendo a coluna 'Revisar_Manualmente' do
+    relatório CSV consolidado (gerado por core/grader.py:save_csv_report,
+    chamado a partir de main.py). Essa coluna é marcada 'SIM' quando ao
+    menos uma questão do aluno foi identificada com confiança baixa pela
+    IA (ex.: código não corresponde ao enunciado oficial da questão, ou
+    identificação de tipo caiu no fallback heurístico).
+
+    Se o arquivo não existir (ex.: rodou uma versão antiga do gerador, ou
+    caminho errado em config.yaml), retorna {} e o chamador simplesmente
+    não marca ninguém para revisão — o envio continua funcionando, só sem
+    esse aviso extra.
+    """
+    revisar = {}
+    try:
+        with open(caminho_csv_relatorio, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                login_csv = (row.get('Login') or '').strip()
+                if login_csv:
+                    revisar[login_csv] = (row.get('Revisar_Manualmente', '').strip() == 'SIM')
+    except FileNotFoundError:
+        print(f"[AVISO] Relatório CSV de revisão manual não encontrado: {caminho_csv_relatorio}")
+    return revisar
+
+
+# Aviso anexado ao corpo do e-mail quando o aluno tem ao menos uma questão
+# marcada para revisão manual (Revisar_Manualmente = SIM no relatório CSV).
+AVISO_REVISAO_MANUAL = (
+    "\n\nATENCAO: em pelo menos uma questao desta prova, a IA sinalizou "
+    "confianca baixa na identificacao do tipo de questao (por exemplo, "
+    "por o codigo enviado nao corresponder exatamente ao enunciado "
+    "sorteado). A nota e os comentarios dessa questao especifica podem "
+    "estar menos precisos que o habitual - use com ainda mais cautela "
+    "como material de apoio, e sinta-se a vontade para perguntar ao "
+    "professor caso tenha duvidas sobre essa avaliacao."
+)
 
 
 def main():
@@ -227,9 +278,22 @@ def main():
         return
 
     # Carrega mapeamento login → email do CSV do Moodle
-    caminho_csv = paths_cfg.get('emails_csv', './Simulado2.csv')
+    caminho_csv = paths_cfg.get('emails_csv', './Prova1.csv')
     mapa_emails = carregar_emails_csv(caminho_csv)
     print(f"[INFO] {len(mapa_emails)} e-mails carregados do CSV.")
+
+    # Carrega o relatório consolidado (gerado por main.py/save_csv_report)
+    # para saber quais alunos têm questão(ões) marcada(s) para revisão
+    # manual. Caminho pode ser sobrescrito em config.yaml via
+    # paths.relatorio_csv; por padrão, segue a mesma convenção de nome
+    # usada em main.py: "<pasta_pai>/<pasta_base>_relatorio.csv".
+    base_path = Path(pasta_base)
+    caminho_relatorio = paths_cfg.get(
+        'relatorio_csv',
+        str(base_path.parent / f"{base_path.name}_relatorio.csv")
+    )
+    mapa_revisar = carregar_revisar_manualmente(caminho_relatorio)
+    print(f"[INFO] {sum(mapa_revisar.values())} aluno(s) marcados para revisão manual em {caminho_relatorio}.")
 
     total = len(rubricas)
     enviados = 0
@@ -250,12 +314,18 @@ def main():
             nome_pasta=nome_pasta,
             nota_info=nota_info
         )
+
+        # Opção A: aluno continua recebendo o e-mail normalmente, mas com
+        # um aviso extra anexado ao corpo quando alguma questão foi
+        # marcada para revisão manual pela baixa confiança da IA.
+        if mapa_revisar.get(login_raw.split('@')[0]) or mapa_revisar.get(login):
+            texto_email += AVISO_REVISAO_MANUAL
+
         assunto = template_cfg.get('assunto', "").format(login=login_raw.split('@')[0])
 
         email_to = mapa_emails.get(login)
         if not email_to:
             print(f"[AVISO] Login '{login}' não encontrado no CSV, pulando.")
-            ...
             falhas.append({
                 'login': login,
                 'email': 'não encontrado',
@@ -267,7 +337,7 @@ def main():
             continue
 
         # DESTINATARIO (ajuste aqui para producao ou teste)
-        email_to = "fzampirolli@gmail.com"  # TESTE
+        #email_to = "fzampirolli@gmail.com"  # TESTE
 
         sucesso, erro = envia_email(
             servidor, porta, FROM, PASS,
@@ -288,7 +358,7 @@ def main():
                 'erro': erro,
             })
 
-        break  # remover em produção
+        #break  # remover em produção
 
     print(f"\nResultado: {enviados}/{total} enviados com sucesso.")
     gerar_relatorio_falhas(falhas)

@@ -307,9 +307,28 @@ log_correcao_20260418_1016.txt
 | Diferenca | `Total_IA - Total_Moodle` |
 
 
----
+## 10. Envio de *Feedbacks* por E-mail (Opcional)
 
-## 10. Envio de Feedbacks por E-mail (Opcional)
+Antes do envio dos *feedbacks*, o método verifica um arquivo CSV exportado
+da aba **Notas** do Moodle, referente à atividade avaliativa. Esse arquivo
+permite confirmar a correspondência entre o nome da pasta utilizada no
+processo de correção e o endereço de e-mail efetivamente cadastrado para o
+aluno no Moodle.
+
+Por exemplo, para a atividade **Prova 1**, pode ser utilizado o arquivo
+`Prova1.csv`. O método utiliza o e-mail indicado no nome da pasta do aluno
+para localizá-lo no arquivo CSV e, assim, verificar se essa identificação
+corresponde ao e-mail registrado no Moodle. Essa verificação reduz o risco
+de enviar uma rubrica para um endereço incorreto, especialmente quando os
+arquivos das respostas foram organizados previamente a partir dos e-mails
+dos estudantes.
+
+Caso não tenha ocorrido nenhuma alteração na lista de alunos da disciplina
+no Moodle, o mesmo arquivo CSV pode ser reutilizado para outras atividades
+avaliativas. Nesse caso, não é necessário exportar novamente a aba **Notas**
+a cada avaliação.
+
+Para executar o envio:
 
 ```bash
 # macOS/Linux
@@ -333,14 +352,15 @@ templates:
   assunto: "Rubricas geradas por IA - Prova - {login}@aluno.ufabc.edu.br"
   corpo: |
     Prezado(a) {nome_pasta},
-    
+
     Segue em anexo a rubrica de correção gerada por IA.
-    
+
     Atenciosamente,
     Prof.
 ```
 
-> ⚠️ Teste com seu próprio e-mail antes de enviar para os alunos.
+> ⚠️ Recomenda-se testar inicialmente o procedimento com o próprio
+> endereço de e-mail antes de realizar o envio para os alunos.
 
 ---
 

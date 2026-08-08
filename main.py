@@ -1,11 +1,10 @@
-import csv
 import yaml
 import argparse
 import asyncio
 import logging
 from pathlib import Path
 from providers import get_client
-from core.grader import process_student, save_consolidated_report
+from core.grader import process_student, save_consolidated_report, save_csv_report
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,43 +43,21 @@ async def run_grading():
     raw_results = await asyncio.gather(*tasks) # Aguarda a conclusão de todos
     
     # Filtrar apenas os que deram certo
-
     results = [r for r in raw_results if r and r.get('status') == 'ok']
 
+    # --- RELATÓRIOS ---
+    # save_csv_report já inclui, por questão, as colunas de nota, tipo
+    # identificado e confiança da identificação (Alta/Média/Baixa), além da
+    # coluna agregada Revisar_Manualmente (marcada quando qualquer questão do
+    # aluno teve confiança baixa ou caiu no fallback heurístico de tipo).
     csv_path = base_dir.parent / f"{base_dir.name}_relatorio.csv"
-    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        q_keys = sorted(config['grading']['weights'].keys())
-        
-        # Cabeçalho: Nome, Login, Moodle_Q1, Moodle_Q2..., IA_Q1, IA_Q2..., Total_Moodle, Total_IA, Diff
-        header = ["Nome", "Login"]
-        for q in q_keys: header.append(f"{q.upper()}_Moodle")
-        for q in q_keys: header.append(f"{q.upper()}_IA")
-        header += ["Total_Moodle", "Total_IA", "Diferenca"]
-        writer.writerow(header)
+    save_csv_report(results, csv_path)
 
-        for r in results:
-            partes = r['student'].split(" - ")
-            nome = partes[0]
-            login = partes[1] if len(partes) > 1 else ""
-            
-            # Monta a linha começando com as duas colunas
-            row = [nome, login]
-            
-            # Adiciona as notas (usando int() para não ter decimais como você pediu antes)
-            for q in q_keys: 
-                row.append(int(r['moodle_parciais'].get(q, 0)))
-            for q in q_keys: 
-                row.append(int(r['ia_parciais'].get(q, 0)))
-                
-            row += [
-                int(r.get('moodle_total', 0)), 
-                int(r.get('ia_total', 0)), 
-                int(r.get('diff', 0))
-            ]
-            writer.writerow(row)
+    all_path = base_dir.parent / f"{base_dir.name}_ALL.txt"
+    save_consolidated_report(results, all_path)
 
     logger.info(f"📊 Relatório CSV gerado: {csv_path}")
+    logger.info(f"📄 Relatório consolidado gerado: {all_path}")
     logger.info(f"✅ Processamento concluído! {len(results)}/{len(student_paths)} alunos.")
 
 if __name__ == "__main__":
