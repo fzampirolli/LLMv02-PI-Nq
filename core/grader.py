@@ -288,9 +288,15 @@ async def process_student(student_path: Path, client, config: Dict, semaphore: a
                 clean_content = re.sub(r'(?:Tipo identificado|TIPO|IPO)\s*:?\s*([A-Z0-9]+)', '', response.content).strip()
 
                 ia_blocks.append(_t())
-                ia_blocks.append(_r(f"Q{q_num} - CÓDIGO DO ALUNO"))
+                ia_blocks.append(_r(f"Q{q_num} - ENUNCIADO E CÓDIGO DO ALUNO"))
                 ia_blocks.append(_s())
                 ia_blocks.append("")
+                if enunciado_oficial:
+                    ia_blocks.append("ENUNCIADO DA QUESTÃO (extraído do VPL/Moodle):")
+                    ia_blocks.append(formatar_texto_IA(enunciado_oficial, W))
+                    ia_blocks.append("")
+                    ia_blocks.append("CÓDIGO SUBMETIDO:")
+                    ia_blocks.append("-" * len("CÓDIGO SUBMETIDO:"))
                 ia_blocks.append(code)
                 ia_blocks.append("")
                 if execucao_real:
